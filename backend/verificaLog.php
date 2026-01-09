@@ -1,67 +1,88 @@
 <?php
-session_start();
+/**
+ * verificaLog.php — versão FINAL (Vercel + WAF safe)
+ */
+
 date_default_timezone_set('America/Sao_Paulo');
 $dataAtual = date("Y-m-d H:i:s");
 
-// ✅ 1) Carregue a conexão ANTES de usar $conn
-// Ajuste o caminho conforme seu projeto:
-require_once __DIR__ . "/conexao.php"; // este arquivo deve definir $conn (PDO pgsql)
+/**
+ * 1️⃣ Conexão
+ */
+require_once __DIR__ . "/conexao.php";
 
-// ✅ 2) Busque url_base/titulo ANTES de redirecionar
-$stmt = $conn->prepare("SELECT parametro, valor FROM parametros_gerais WHERE parametro IN ('url_base','titulo')");
+/**
+ * 2️⃣ Busca parâmetros globais
+ */
+$stmt = $conn->prepare("
+    SELECT parametro, valor 
+    FROM parametros_gerais 
+    WHERE parametro IN ('url_base','titulo')
+");
 $stmt->execute();
 $params = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-$urlBase =  '/';
-$titulo  = $params['titulo'] ?? '';
+$urlBase = $params['url_base'] ?? '/';
+$titulo  = $params['titulo']  ?? '';
 
-// ✅ 3) Pegue o token com segurança (sem warning)
-$tokenAcess = $_SESSION['token'] ?? '';
-$ip = $_SERVER['REMOTE_ADDR'] ?? '';
+/**
+ * 3️⃣ Token vem do COOKIE (não sessão)
+ */
+$tokenAcess = $_COOKIE['auth_token'] ?? null;
+$ip         = $_SERVER['REMOTE_ADDR'] ?? '';
 
-if (empty($tokenAcess)) {
-    header("Location: " . $urlBase . "login.php");
+if (!$tokenAcess) {
+    header("Location: {$urlBase}login.php");
     exit;
 }
 
-// ✅ 4) Valide token (Postgres: NOW() ou comparação timestamp)
-// Evite string concatenation (SQL injection)
+/**
+ * 4️⃣ Valida token no banco
+ */
 $stmt = $conn->prepare("
-    SELECT id_usuario, validade, ip
+    SELECT id_usuario
     FROM login_registro
     WHERE token = :token
-      AND validade > :agora
+      AND validade > NOW()
       AND ip = :ip
     ORDER BY id DESC
     LIMIT 1
 ");
 $stmt->execute([
     ':token' => $tokenAcess,
-    ':agora' => $dataAtual,
     ':ip'    => $ip
 ]);
 
-$buscaToken = $stmt->fetch();
+$buscaToken = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$buscaToken) {
-    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
+    setcookie('auth_token', '', time() - 3600, '/', '', true, true);
+    header("Location: {$urlBase}login.php");
     exit;
 }
 
-$idUser = (int)($buscaToken['id_usuario'] ?? 0);
+/**
+ * 5️⃣ Busca usuário
+ */
+$idUser = (int)$buscaToken['id_usuario'];
 
-if ($idUser <= 0) {
-    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
-    exit;
-}
-
-// ✅ 5) Buscar usuário (tabela em minúsculo no Postgres)
-$stmt = $conn->prepare("SELECT * FROM usuarios WHERE id = :id LIMIT 1");
+$stmt = $conn->prepare("
+    SELECT *
+    FROM usuarios
+    WHERE id = :id
+    LIMIT 1
+");
 $stmt->execute([':id' => $idUser]);
-$User = $stmt->fetch();
+
+$User = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$User) {
-    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
+    setcookie('auth_token', '', time() - 3600, '/', '', true, true);
+    header("Location: {$urlBase}login.php");
     exit;
 }
-?>
+
+/**
+ * ✔ A PARTIR DAQUI:
+ * $User está válido e o login FUNCIONA
+ */
