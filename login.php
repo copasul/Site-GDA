@@ -1,9 +1,11 @@
 <?php
-if(!empty($_GET['action'])){
-    $action = $_GET['action'];
-}else{
-    $action = "login";
+session_start();
+
+if (!isset($_SESSION['csrf'])) {
+    $_SESSION['csrf'] = bin2hex(random_bytes(32));
 }
+
+$action = $_GET['action'] ?? 'login';
 ?>
 
 <!DOCTYPE html>
@@ -17,7 +19,7 @@ if(!empty($_GET['action'])){
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title><?php echo $titulo?> - Login</title>
+    <title><?= htmlspecialchars($titulo ?? 'Sistema', ENT_QUOTES, 'UTF-8') ?> - Login</title>
 
     <!-- Custom fonts for this template-->
     <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
@@ -65,6 +67,8 @@ if(!empty($_GET['action'])){
                                         if($action == "login"){
                                     ?>
                                     <form class="user" method="POST" action="backend/login.php">
+                                        <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
+
                                         <div class="form-group">
                                             <input type="email" name="email" class="form-control form-control-user"
                                                 id="exampleInputEmail" aria-describedby="emailHelp"
@@ -95,6 +99,8 @@ if(!empty($_GET['action'])){
                                     }elseif($action == "esqueceu-a-senha"){
                                     ?>
                                         <form class="user" method="POST" action="backend/esqueceu-a-senha.php">
+                                            <input type="hidden" name="csrf" value="<?= $_SESSION['csrf'] ?>">
+
                                             <div class="form-group">
                                                 <input type="email" name="email" class="form-control form-control-user"
                                                     id="exampleInputEmail" aria-describedby="emailHelp"
