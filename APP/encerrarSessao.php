@@ -1,29 +1,6 @@
 <?php
-session_start();
+include __DIR__ . '../backend/conexao.php';
+$token = $_POST['token'];
 
-/**
- * Arquivo está em /backend
- * conexao.php também está em /backend
- */
-require_once __DIR__ . '/conexao.php';
+$sql = $conn->query("UPDATE login_registro SET token=NULL WHERE token = '$token'");
 
-if (empty($_SESSION['token'])) {
-    http_response_code(401);
-    exit('Sessão inválida');
-}
-
-$token = $_SESSION['token'];
-
-$stmt = $conn->prepare("
-    UPDATE login_registro
-    SET token = NULL
-    WHERE token = :token
-");
-$stmt->execute([
-    ':token' => $token
-]);
-
-$_SESSION = [];
-session_destroy();
-
-echo 'OK';
