@@ -1,23 +1,5 @@
 <?php
-/**
- * =========================
- * 4️⃣ COOKIE DE SESSÃO SEGURO
- * =========================
- */
-ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1); // exige HTTPS
-ini_set('session.cookie_samesite', 'Strict');
-
-session_start();
 date_default_timezone_set('America/Sao_Paulo');
-
-/**
- * =========================
- * Dados básicos
- * =========================
- */
-$dataAtual = date("Y-m-d H:i:s");
-$validade  = date("Y-m-d H:i:s", strtotime('+1 hour'));
 
 $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
 $senhaInput = trim((string)($_POST['senha'] ?? ''));
@@ -27,125 +9,75 @@ if (!$email || $senhaInput === '') {
     exit;
 }
 
-/**
- * =========================
- * IP (compatível com WAF)
- * =========================
- */
-$ip = $_SERVER['HTTP_X_FORWARDED_FOR']
-    ?? $_SERVER['REMOTE_ADDR']
-    ?? '';
+require_once __DIR__ . '/conexao.php';
 
 /**
- * =========================
- * Token seguro
- * =========================
+ * Busca usuário
+ */
+$stmt = $conn->prepare("
+    SELECT id, email, hash, senha
+    FROM usuarios
+    WHERE email = :email
+    LIMIT 1
+");
+$stmt->execute([':email' => $email]);
+$usuario = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$usuario) {
+    header("Location: ../login.php?status=error");
+    exit;
+}
+
+/**
+ * Valida senha (mantive seu algoritmo)
+ */
+$hash = (string)$usuario['hash'];
+$senhaCalc = md5($senhaInput . $hash . "%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
+
+if ($senhaCalc !== $usuario['senha']) {
+    header("Location: ../login.php?status=error");
+    exit;
+}
+
+/**
+ * Gera token
  */
 $token = bin2hex(random_bytes(32));
-$tipo_acesso = 'web';
+$agora = date('Y-m-d H:i:s');
+$validade = date('Y-m-d H:i:s', strtotime('+1 hour'));
+$ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
-try {
-    require_once __DIR__ . '/conexao.php';
+/**
+ * Salva login
+ */
+$stmt = $conn->prepare("
+    INSERT INTO login_registro
+    (data_hora, validade, id_usuario, token, tipo_acesso, ip)
+    VALUES
+    (:data_hora, :validade, :id_usuario, :token, 'web', :ip)
+");
+$stmt->execute([
+    ':data_hora'  => $agora,
+    ':validade'   => $validade,
+    ':id_usuario' => $usuario['id'],
+    ':token'      => $token,
+    ':ip'         => $ip,
+]);
 
-    /**
-     * =========================
-     * Busca usuário
-     * =========================
-     */
-    $sqlBusca = $conn->prepare("
-        SELECT id, email, hash, senha
-        FROM usuarios
-        WHERE email = :email
-        LIMIT 1
-    ");
-    $sqlBusca->execute([':email' => $email]);
-    $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
+/**
+ * COOKIE (FUNCIONA NA VERCEL)
+ */
+setcookie(
+    'auth_token',
+    $token,
+    [
+        'expires'  => time() + 3600,
+        'path'     => '/',
+        'secure'   => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+    ]
+);
 
-    if (!$dados) {
-        header("Location: ../login.php?status=error");
-        exit;
-    }
-
-    /**
-     * =========================
-     * 2️⃣ VALIDAÇÃO + MIGRAÇÃO DE SENHA
-     * =========================
-     */
-    $senhaValida = false;
-
-    // ✅ Senha nova (password_hash)
-    if (password_verify($senhaInput, $dados['senha'])) {
-        $senhaValida = true;
-    } else {
-        // ⚠️ Fallback legado (MD5)
-        $hash = (string)$dados['hash'];
-        $senhaCalc = md5($senhaInput . $hash . "%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
-
-        if (hash_equals($dados['senha'], $senhaCalc)) {
-            $senhaValida = true;
-
-            // 🔄 Migra automaticamente para password_hash
-            $novoHash = password_hash($senhaInput, PASSWORD_DEFAULT);
-            $conn->prepare("
-                UPDATE usuarios
-                SET senha = :senha
-                WHERE id = :id
-            ")->execute([
-                ':senha' => $novoHash,
-                ':id'    => (int)$dados['id']
-            ]);
-        }
-    }
-
-    if (!$senhaValida) {
-        header("Location: ../login.php?status=error");
-        exit;
-    }
-
-    /**
-     * =========================
-     * 3️⃣ EXPIRA SESSÕES ANTIGAS
-     * =========================
-     */
-    $conn->prepare("
-        DELETE FROM login_registro
-        WHERE id_usuario = :id
-    ")->execute([
-        ':id' => (int)$dados['id']
-    ]);
-
-    /**
-     * =========================
-     * Registra novo login
-     * =========================
-     */
-    $sqlAcesso = $conn->prepare("
-        INSERT INTO login_registro
-        (data_hora, validade, id_usuario, token, tipo_acesso, ip)
-        VALUES
-        (:dataHora, :validade, :idUsuario, :token, :tipo_acesso, :ip)
-    ");
-    $sqlAcesso->execute([
-        ':dataHora'    => $dataAtual,
-        ':validade'    => $validade,
-        ':idUsuario'   => (int)$dados['id'],
-        ':token'       => $token,
-        ':tipo_acesso' => $tipo_acesso,
-        ':ip'          => $ip,
-    ]);
-
-    /**
-     * =========================
-     * Sessão
-     * =========================
-     */
-    $_SESSION['token'] = $token;
-    $_SESSION['usuario_id'] = (int)$dados['id'];
-
-    header("Location: ../index.php");
-    exit;
-
-} catch (Throwable $e) {
-    http_response_code(500);
-    exit('Erro interno');
-}
+header("Location: ../index.php");
+exit;
