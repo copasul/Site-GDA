@@ -1,0 +1,17 @@
+<?php
+$dsn = "mysql:host=gda-copasul-db-1;dbname=copasul_leanAgro";
+$username = "root";
+$password = "root123";
+
+try {
+    $conn = new PDO($dsn, $username, $password);
+    $conn->exec('SET CHARACTER SET utf8');
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $sqlURL = $conn->query("SELECT * FROM `Paramentros_gerais` WHERE parametro = 'url_base'");
+    $urlBaseSql = $sqlURL->fetch(PDO::FETCH_ASSOC);
+    $urlBase = $urlBaseSql['valor'];
+} catch (PDOException $e) {
+    echo "Erro de conexão: " . $e->getMessage();
+}
+?
