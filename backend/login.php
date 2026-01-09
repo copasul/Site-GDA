@@ -1,6 +1,9 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
 
+/**
+ * 1️⃣ Validação de entrada
+ */
 $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
 $senhaInput = trim((string)($_POST['senha'] ?? ''));
 
@@ -9,10 +12,13 @@ if (!$email || $senhaInput === '') {
     exit;
 }
 
+/**
+ * 2️⃣ Conexão
+ */
 require_once __DIR__ . '/conexao.php';
 
 /**
- * Busca usuário
+ * 3️⃣ Busca usuário
  */
 $stmt = $conn->prepare("
     SELECT id, email, hash, senha
@@ -29,7 +35,7 @@ if (!$usuario) {
 }
 
 /**
- * Valida senha (mantive seu algoritmo)
+ * 4️⃣ Valida senha (mantendo seu algoritmo)
  */
 $hash = (string)$usuario['hash'];
 $senhaCalc = md5($senhaInput . $hash . "%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
@@ -40,15 +46,15 @@ if ($senhaCalc !== $usuario['senha']) {
 }
 
 /**
- * Gera token
+ * 5️⃣ Gera token
  */
-$token = bin2hex(random_bytes(32));
-$agora = date('Y-m-d H:i:s');
-$validade = date('Y-m-d H:i:s', strtotime('+1 hour'));
-$ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$token     = bin2hex(random_bytes(32));
+$agora     = date('Y-m-d H:i:s');
+$validade  = date('Y-m-d H:i:s', strtotime('+1 hour'));
+$ip        = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
 /**
- * Salva login
+ * 6️⃣ Registra login
  */
 $stmt = $conn->prepare("
     INSERT INTO login_registro
@@ -65,7 +71,7 @@ $stmt->execute([
 ]);
 
 /**
- * COOKIE (FUNCIONA NA VERCEL)
+ * 7️⃣ Cookie seguro (Vercel / WAF safe)
  */
 setcookie(
     'auth_token',
@@ -79,5 +85,8 @@ setcookie(
     ]
 );
 
+/**
+ * 8️⃣ Redirect
+ */
 header("Location: ../index.php");
 exit;
