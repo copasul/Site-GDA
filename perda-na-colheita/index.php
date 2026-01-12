@@ -113,7 +113,7 @@
         <title><?php echo $titulo?> - Perda na Colheita</title>
 
         <!-- Inclusão do arquivo 'head', contendo informações gerais -->
-        <?php include __DIR__ . '../head.php'; ?>
+        <?php include __DIR__ . '/../head.php'; ?>
         <link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     </head>
 
@@ -121,7 +121,7 @@
     <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar -->
-        <?php include __DIR__ . '../nav-bar.php'; ?>
+        <?php include __DIR__ . '/../nav-bar.php'; ?>
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
@@ -131,7 +131,7 @@
             <div id="content">
 
                 <!-- Topbar -->
-                <?php include __DIR__ . '../top-bar.php'; ?>
+                <?php include __DIR__ . '/../top-bar.php'; ?>
                 <!-- End of Topbar -->
 
                 <!-- Begin Page Content -->
@@ -694,12 +694,12 @@
     <script src="../vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
     <!-- Page level custom scripts -->
-    <script src="../js/demo/datatables-demo.js"></script>
-    <script src="../vendor/chart.js/Chart.min.js"></script>
+    <script src="/../js/demo/datatables-demo.js"></script>
+    <script src="/../vendor/chart.js/Chart.min.js"></script>
 
     <!-- Page level custom scripts -->
-    <?php include "../js/demo/barTalhao.php" ?>
-    <?php include "../js/demo/area.php" ?>
+    <?php include "/../js/demo/barTalhao.php" ?>
+    <?php include "/../js/demo/area.php" ?>
 
     <script>
         function printHTML(){
