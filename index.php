@@ -274,76 +274,26 @@
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered" id="propriedadeComparativo" width="100%" cellspacing="0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Fazenda</th>
-                                                    <th>Perda Média</th>
-                                                    
-                                                </tr>
-                                            </thead>
-                                            <tfoot>
-                                                <tr>
-                                                    <th>Fazenda</th>
-                                                    <th>Perda Média</th>
-                                                </tr>
-                                            </tfoot>
-                                            <tbody>
-                                                <?php
-                                                   $n = 0;
-                                                   if(!empty($User['tipo'])){
-                                                        $sqlComparativoFazendas = $conn->query("
-  SELECT DISTINCT id_propriedade
-  FROM $nomeTabela
-  WHERE id_safra = $safra AND id_propriedade <> 54
-");
-
-                                                   }else{
-                                                        $sqlComparativoFazendas = $conn->query("
-  SELECT DISTINCT t.id_propriedade
-  FROM $nomeTabela t
-  JOIN relacao_usuario_propriedade r ON t.id_propriedade = r.id_propriedade
-  WHERE t.id_safra = $safra
-    AND r.id_usuario = $idUser
-    AND r.status = 1
-");
-
-                                                    }
-                                                   while($listaFazendas = $sqlComparativoFazendas->fetch(PDO::FETCH_ASSOC)){
-                                                        $idPropriedade = $listaFazendas['id_propriedade'];
-
-                                                        $sqlBuscaFazenda = $conn->query("SELECT * FROM Propriedades WHERE id = $idPropriedade");
-                                                        $fazenda = $sqlBuscaFazenda->fetch(PDO::FETCH_ASSOC);
-
-                                                        $sqlCalculamedidatalhao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_safra = '$safra' AND id_propriedade = $idPropriedade AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
-                                                        $perdaAculumada = 0;
-                                                        $areaAcumulada =0;
-                                                        while($MediaPorTalhao = $sqlCalculamedidatalhao->fetch(PDO::FETCH_ASSOC)){
-
-                                                            $idTalhao = $MediaPorTalhao['id_talhao'];
-                                                            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                                                            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-                                                            $perdaAculumada += ($MediaPorTalhao['medidatalhao'] * $infoTalhao['area']);
-                                                            $areaAcumulada += $infoTalhao['area'];
- 
-                                                        }
-                                                        
-                                                        $listaPerdasMediaPropriedade[$n]['id'] = $idPropriedade;
-                                                        $listaPerdasMediaPropriedade[$n]['nome'] = $fazenda['nome'];
-                                                        $listaPerdasMediaPropriedade[$n]['media'] = ($perdaAculumada/$areaAcumulada);
-                                                        $listaPerdasMediaPro[] = ($perdaAculumada/$areaAcumulada);
-                                                        $n += 1;
-                                                ?>
-                                                <tr>
-                                                    <td><?php echo $fazenda['nome']?></td>
-                                                    <td><?php echo number_format($perdaAculumada/$areaAcumulada, 2, ',', '.')?> sc/ha</td>
-                                                   
-                                                </tr>
-                                                <?php
-                                               
-                                                    }
-                                                ?>
-                                            </tbody>
-                                        </table>
+    <thead>
+        <tr>
+            <th>Fazenda</th>
+            <th>Perda Média</th>
+        </tr>
+    </thead>
+    <tfoot>
+        <tr>
+            <th>Fazenda</th>
+            <th>Perda Média</th>
+        </tr>
+    </tfoot>
+    <tbody>
+        <!-- 
+           DEIXE VAZIO! 
+           Apaguei todo aquele PHP com 'while' que estava aqui.
+           O JavaScript vai preencher isso sozinho.
+        -->
+    </tbody>
+</table>
                                     </div>
                                 </div>
                             </div>
@@ -391,34 +341,6 @@
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
-
-   
-
-    <!-- Bootstrap core JavaScript-->
-    <script src="vendor/jquery/jquery.min.js"></script>
-    <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Core plugin JavaScript-->
-    <script src="vendor/jquery-easing/jquery.easing.min.js"></script>
-
-    <!-- Custom scripts for all pages-->
-    <script src="js/sb-admin-2.min.js"></script>
-
-    <!-- Page level plugins -->
-    <script src="vendor/chart.js/Chart.min.js"></script>
-
-    <!-- Page level custom scripts -->
-    <script src="js/demo/chart-area-demo.js"></script>
-    <script src="js/demo/chart-pie-demo.js"></script>
-
-        <!-- Page level plugins -->
-    <script src="vendor/datatables/jquery.dataTables.min.js"></script>
-    <script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
-
-    <!-- Page level custom scripts -->
-    <script src="js/demo/datatables-demo.js"></script>
-
-    <?php include "js/demo/barPropriedade.php" ?>
 
 </body>
 
