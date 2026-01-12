@@ -1,7 +1,7 @@
 <?php
 //conexao com o banco
-    include __DIR__ . '../backend/conexao.php';
-    include __DIR__ . '../backend/verificaLog.php';
+    include __DIR__ . '/../backend/conexao.php';
+    include __DIR__ . '/../backend/verificaLog.php';
 
 //verifica se o metodo get está recebendo
     if(empty($_GET['propriedade'])){
