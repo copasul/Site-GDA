@@ -73,7 +73,13 @@
             $mediaPonderadaTalhao = $perdaAculumada/$areaAcumulada;
 
 
-            $sqlCountMaquinas = $conn->query("SELECT COUNT(*) as count FROM (SELECT * FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra GROUP BY id_maquina) AS maq;");
+            $sqlCountMaquinas = $conn->query("
+                SELECT COUNT(DISTINCT id_maquina) AS count
+                FROM $nomeTabela
+                WHERE id_propriedade = $propriedade
+                AND id_safra = $safra
+            ");
+
             $countMaq = $sqlCountMaquinas->fetch(PDO::FETCH_ASSOC);
             
 
