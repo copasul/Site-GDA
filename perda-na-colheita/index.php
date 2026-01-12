@@ -176,15 +176,17 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="exampleFormControlInput1">Selecione a Safra</label>
-                                    <select name="safra" id="" class="form-control col-md-12">
+                                    <select name="safra" class="form-control col-md-12">
                                         <option value="">Selecione a safra...</option>
-                                        <?php
-                                            while($dados2 = $sqlBusca2->fetch(PDO::FETCH_ASSOC)){
+
+                                        <?php while($dados2 = $sqlBusca2->fetch(PDO::FETCH_ASSOC)):
+                                            $valor = base64_encode($dados2['id']);
+                                            $selected = ($safra === $valor) ? 'selected' : '';
                                         ?>
-                                            <option value="<?php echo base64_encode($dados2['id'])?>" <?php if($safra == $dados2['id']){echo "selected";}?>><?php echo $dados2['descricao']?></option>
-                                        <?php
-                                            }
-                                        ?>
+                                            <option value="<?= $valor ?>" <?= $selected ?>>
+                                                <?= htmlspecialchars($dados2['descricao']) ?>
+                                            </option>
+                                        <?php endwhile; ?>
                                     </select>
                                 </div>
                             </div>
