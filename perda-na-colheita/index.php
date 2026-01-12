@@ -181,7 +181,7 @@
                                         <?php
                                             while($dados2 = $sqlBusca2->fetch(PDO::FETCH_ASSOC)){
                                         ?>
-                                            <option value="<?php echo base64_encode($dados2['id'])?>" <?php if($safra == $dados2['id']){echo "selected";}?>><?php echo $dados2['Descricao']?></option>
+                                            <option value="<?php echo base64_encode($dados2['id'])?>" <?php if($safra == $dados2['id']){echo "selected";}?>><?php echo $dados2['descricao']?></option>
                                         <?php
                                             }
                                         ?>
@@ -643,7 +643,7 @@
                     }    
                     }else{
                     ?>
-                 
+                
                     <?php
                     }
                     ?>
