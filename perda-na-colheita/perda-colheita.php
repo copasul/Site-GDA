@@ -1,6 +1,6 @@
 <?php
 //conexao com o banco
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/../backend/conexao.php';
 
 //verifica se o metodo get está recebendo
     if(empty($_GET['propriedade'])){
@@ -69,7 +69,7 @@
         <title>Propriedades</title>
 
         <!-- Inclusão do arquivo 'head', contendo informações gerais -->
-        <?php include __DIR__ . '../head.php'; ?>
+        <?php include __DIR__ . '/../head.php'; ?>
         <link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     </head>
 
