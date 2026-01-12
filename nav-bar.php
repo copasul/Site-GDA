@@ -3,7 +3,7 @@
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="<?php echo $urlBase?>">
 
-                <div class="sidebar-brand-text mx-3">GDA Copasul Teste</div>
+                <div class="sidebar-brand-text mx-3">GDA Copasul</div>
             </a>
 
             <!-- Divider -->

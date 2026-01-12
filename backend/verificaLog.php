@@ -1,64 +1,67 @@
 <?php
 session_start();
 date_default_timezone_set('America/Sao_Paulo');
-
 $dataAtual = date("Y-m-d H:i:s");
-$validade  = date("Y-m-d H:i:s", strtotime('+1 hour'));
 
-$email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-$senhaInput = trim((string)($_POST['senha'] ?? '')); // substitui FILTER_SANITIZE_STRING
+// ✅ 1) Carregue a conexão ANTES de usar $conn
+// Ajuste o caminho conforme seu projeto:
+require_once __DIR__ . "/conexao.php"; // este arquivo deve definir $conn (PDO pgsql)
 
-$ip = $_SERVER["REMOTE_ADDR"] ?? '';
-$chave = date('m/Y');
-$token = md5(($email ?? '') . "iwHv%C,z0j!qYa" . $chave . "web" . $ip . rand(0,1000));
-$tipo_acesso = 'web';
+// ✅ 2) Busque url_base/titulo ANTES de redirecionar
+$stmt = $conn->prepare("SELECT parametro, valor FROM parametros_gerais WHERE parametro IN ('url_base','titulo')");
+$stmt->execute();
+$params = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
-try {
-    require_once __DIR__ . '/conexao.php';
+$urlBase =  '/';
+$titulo  = $params['titulo'] ?? '';
 
-    if (!$email || $senhaInput === '') {
-        header("Location: ../login.php?status=error");
-        exit;
-    }
+// ✅ 3) Pegue o token com segurança (sem warning)
+$tokenAcess = $_SESSION['token'] ?? '';
+$ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
-    // ✅ Postgres: tabela em minúsculo
-    $sqlBusca = $conn->prepare("SELECT id, email, hash, senha FROM usuarios WHERE email = :email LIMIT 1");
-    $sqlBusca->execute([':email' => $email]);
-    $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
-
-    if (!$dados) {
-        header("Location: ../login.php?status=error");
-        exit;
-    }
-
-    $hash = (string)$dados['hash'];
-    $senhaCalc = md5($senhaInput . $hash . "%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
-
-    if ($senhaCalc !== $dados['senha']) {
-        header("Location: ../login.php?status=error");
-        exit;
-    }
-
-    // ✅ Postgres: sem crases + prepare normal
-    $sqlAcesso = $conn->prepare("
-        INSERT INTO login_registro (data_hora, validade, id_usuario, token, tipo_acesso, ip)
-        VALUES (:dataHora, :validade, :idUsuario, :token, :tipo_acesso, :ip)
-    ");
-    $sqlAcesso->execute([
-        ':dataHora'    => $dataAtual,
-        ':validade'    => $validade,
-        ':idUsuario'   => (int)$dados['id'],
-        ':token'       => $token,
-        ':tipo_acesso' => $tipo_acesso,
-        ':ip'          => $ip,
-    ]);
-
-    $_SESSION['token'] = $token;
-
-    header("Location: ../index.php");
+if (empty($tokenAcess)) {
+    header("Location: " . $urlBase . "login.php");
     exit;
-
-} catch (Throwable $e) {
-    // Em produção, ideal logar em vez de printar
-    echo "Erro: " . $e->getMessage();
 }
+
+// ✅ 4) Valide token (Postgres: NOW() ou comparação timestamp)
+// Evite string concatenation (SQL injection)
+$stmt = $conn->prepare("
+    SELECT id_usuario, validade, ip
+    FROM login_registro
+    WHERE token = :token
+      AND validade > :agora
+      AND ip = :ip
+    ORDER BY id DESC
+    LIMIT 1
+");
+$stmt->execute([
+    ':token' => $tokenAcess,
+    ':agora' => $dataAtual,
+    ':ip'    => $ip
+]);
+
+$buscaToken = $stmt->fetch();
+
+if (!$buscaToken) {
+    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
+    exit;
+}
+
+$idUser = (int)($buscaToken['id_usuario'] ?? 0);
+
+if ($idUser <= 0) {
+    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
+    exit;
+}
+
+// ✅ 5) Buscar usuário (tabela em minúsculo no Postgres)
+$stmt = $conn->prepare("SELECT * FROM usuarios WHERE id = :id LIMIT 1");
+$stmt->execute([':id' => $idUser]);
+$User = $stmt->fetch();
+
+if (!$User) {
+    header("Location: " . $urlBase . "backend/encerrar-sessao.php");
+    exit;
+}
+?>
