@@ -44,28 +44,33 @@
         
         if(empty($idMaquina)){  
             if(!empty($nomeMaquina)){
-                $sqlInsert2 = $conn->query("INSERT INTO maquina(nome, modelo, marca, ano_fabricacao, tipo_proprietario, id_propriedade, status) VALUES ('$nomeMaquina', '$modeloMaquina', '$marcaMaquina', '$anoMaquina', '$proprietario', '$idPropriedade', 1)");
+                $sqlInsert2 = $conn->prepare("INSERT INTO maquina(nome, modelo, marca, ano_fabricacao, tipo_proprietario, id_propriedade, status) VALUES (?, ?, ?, ?, ?, ?, 1)");
+                $sqlInsert2->execute([$nomeMaquina, $modeloMaquina, $marcaMaquina, $anoMaquina, $proprietario, $idPropriedade]);
             }
                 
             }else{
-            $sqlInsert3 = $conn->query("UPDATE maquina SET nome='$nomeMaquina',modelo='$modeloMaquina',marca='$marcaMaquina',ano_fabricacao='$anoMaquina',tipo_proprietario='$proprietario' WHERE id = '$idMaquina' ");
+                $sqlInsert3 = $conn->prepare("UPDATE maquina SET nome=?, modelo=?, marca=?, ano_fabricacao=?, tipo_proprietario=? WHERE id = ?");
+                $sqlInsert3->execute([$nomeMaquina, $modeloMaquina, $marcaMaquina, $anoMaquina, $proprietario, $idMaquina]);
         }
     }
 
     for ($i = 0; $i < $numero_de_talhao; $i++) {
         $idTalhao = $_POST['idTalhao'][$i];
         $nomeTalhao =  $_POST['nomeTalhao'][$i];
-        $numeros = explode(',',$_POST['areaTalhao'][$i]);
-        $areaTalhao = number_format(floatval($numeros[0].'.'.$numeros[1]), 2,'.',',');
+
+        $valArea = str_replace(',', '.', $_POST['areaTalhao'][$i]);
+        $areaTalhao = number_format((float)$valArea, 2, '.', ',');
     
     
         if(empty($idTalhao)){
             if(!empty($nomeTalhao)){
-                $sqlInsert4 = $conn->query("INSERT INTO talhao(nome, area, id_propriedade, status) VALUES ('$nomeTalhao', '$areaTalhao', '$idPropriedade', 1)");
+                $sqlInsert4 = $conn->prepare("INSERT INTO talhao(nome, area, id_propriedade, status) VALUES (?, ?, ?, 1)");
+                $sqlInsert4->execute([$nomeTalhao, $areaTalhao, $idPropriedade]);
             }
                 
-            }else{
-            $sqlInsert5 = $conn->query("UPDATE talhao SET nome='$nomeTalhao',area='$areaTalhao' WHERE id = $idTalhao");
+        }else{
+            $sqlInsert5 = $conn->prepare("UPDATE talhao SET nome=?, area=? WHERE id = ?");
+            $sqlInsert5->execute([$nomeTalhao, $areaTalhao, $idTalhao]);
         }
 
 
@@ -75,8 +80,8 @@
     $acao = "Editou a propriedade ".$nomePropriedade;
     $ip = $_SERVER['REMOTE_ADDR'];
 
-    $sqlInsert3 = $conn->query("INSERT INTO registro_acao(id_usuario, acao, data, ip) VALUES ('$idUsuario', '$acao', '$dataCriacao', '$ip')");
-
+    $sqlInsert3 = $conn->prepare("INSERT INTO registro_acao(id_usuario, acao, data, ip) VALUES (?, ?, ?, ?)");
+    $sqlInsert3->execute([$idUsuario, $acao, $dataCriacao, $ip]);
 
     header("Location: ../detalhes-propriedade.php?id=".filter_input(INPUT_POST, 'idPropriedade', FILTER_SANITIZE_SPECIAL_CHARS));
 
