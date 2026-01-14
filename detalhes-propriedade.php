@@ -175,7 +175,7 @@
                                             </tr>
                                             <?php
                                                 }
-                                                if($countMaquinas['NUM'] == 0){
+                                                if($countMaquinas['num'] == 0){
                                             ?>
                                             <tr>
                                             <input type="hidden" name="idMaquina[]" value="">
@@ -290,7 +290,7 @@
                                             </tr>
                                             <?php
                                                 }
-                                                if($countTalhao['NUM'] == 0){
+                                                if($countTalhao['num'] == 0){
                                             ?>
                                            <tr>
                                             <input type="hidden" name="idTalhao[]" value="">
