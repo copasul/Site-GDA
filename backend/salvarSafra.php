@@ -4,10 +4,10 @@
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
 
-    $descricaoSafra = filter_input(INPUT_POST, 'descricaoSafra', FILTER_SANITIZE_STRING);
-    $dataInicio = filter_input(INPUT_POST, 'dataInicio', FILTER_SANITIZE_STRING);
-    $dataFinal = filter_input(INPUT_POST, 'dataFinal', FILTER_SANITIZE_STRING);
-    $cultura = filter_input(INPUT_POST, 'cultura', FILTER_SANITIZE_STRING);
+    $descricaoSafra = filter_input(INPUT_POST, 'descricaoSafra', FILTER_SANITIZE_SPECIAL_CHARS);
+    $dataInicio = filter_input(INPUT_POST, 'dataInicio', FILTER_SANITIZE_SPECIAL_CHARS);
+    $dataFinal = filter_input(INPUT_POST, 'dataFinal', FILTER_SANITIZE_SPECIAL_CHARS);
+    $cultura = filter_input(INPUT_POST, 'cultura', FILTER_SANITIZE_SPECIAL_CHARS);
 
     
     $sqlInsert = $conn->prepare("INSERT INTO safra(id_cultura, descricao, data_inicio, data_fim) VALUES (:cultura, :descricaoSafra, :dataInicio, :dataFinal)");
