@@ -1,5 +1,5 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/conexao.php';
     date_default_timezone_set('America/Sao_Paulo');
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
