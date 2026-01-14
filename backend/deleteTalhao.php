@@ -1,5 +1,5 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/conexao.php';
 
     $token = $_GET['token'];
     $id = base64_decode($_GET['id']);
