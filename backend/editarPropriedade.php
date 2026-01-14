@@ -78,7 +78,7 @@
     $sqlInsert3 = $conn->query("INSERT INTO registro_acao(id_usuario, acao, data, ip) VALUES ('$idUsuario', '$acao', '$dataCriacao', '$ip')");
 
 
-    header("Location: ../detalhes-propriedade.php?id=".filter_input(INPUT_POST, 'idPropriedade', FILTER_SANITIZE_STRING));
+    header("Location: ../detalhes-propriedade.php?id=".filter_input(INPUT_POST, 'idPropriedade', FILTER_SANITIZE_SPECIAL_CHARS));
 
     
     
