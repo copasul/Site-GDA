@@ -2,18 +2,18 @@
 // echo '<pre>';
 // var_dump($_POST);
 // echo '</pre>';
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/conexao.php';
     date_default_timezone_set('America/Sao_Paulo');
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
 
 
-    $idPropriedade = base64_decode(filter_input(INPUT_POST, 'idPropriedade', FILTER_SANITIZE_STRING));
-    $nomePropriedade = filter_input(INPUT_POST, 'nomePropriedade', FILTER_SANITIZE_STRING);
-    $latitudePropriedade = filter_input(INPUT_POST, 'latitudePropriedade', FILTER_SANITIZE_STRING);
-    $longitudePropriedade = filter_input(INPUT_POST, 'longitudePropriedade', FILTER_SANITIZE_STRING);
-    $cidade = filter_input(INPUT_POST, 'cidade', FILTER_SANITIZE_STRING);
-    $estado = filter_input(INPUT_POST, 'estado', FILTER_SANITIZE_STRING);
+    $idPropriedade = base64_decode(filter_input(INPUT_POST, 'idPropriedade', FILTER_SANITIZE_SPECIAL_CHARS));
+    $nomePropriedade = filter_input(INPUT_POST, 'nomePropriedade', FILTER_SANITIZE_SPECIAL_CHARS);
+    $latitudePropriedade = filter_input(INPUT_POST, 'latitudePropriedade', FILTER_SANITIZE_SPECIAL_CHARS);
+    $longitudePropriedade = filter_input(INPUT_POST, 'longitudePropriedade', FILTER_SANITIZE_SPECIAL_CHARS);
+    $cidade = filter_input(INPUT_POST, 'cidade', FILTER_SANITIZE_SPECIAL_CHARS);
+    $estado = filter_input(INPUT_POST, 'estado', FILTER_SANITIZE_SPECIAL_CHARS);
     
     $nomeMaquina = $_POST['nomeMaquina'];
     $nomeTalhao =  $_POST['nomeTalhao'];
