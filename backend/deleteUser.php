@@ -1,6 +1,6 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
-    $id = base64_decode(filter_input(INPUT_GET, 'id', FILTER_SANITIZE_STRING));
+    include __DIR__ . '/conexao.php';
+    $id = base64_decode(filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS));
     
     $sqlBusca = $conn->prepare("SELECT * FROM usuarios WHERE id = :id");
     $sqlBusca->bindParam(':id', $id);
@@ -18,9 +18,6 @@
     $sqlInsert2 = $conn->prepare("UPDATE login_registro SET token = null WHERE id_usuario = :id;");
     $sqlInsert2->bindParam(':id', $id);
     $sqlInsert2->execute();
-    
-    
-    
     
     header("Location: ../usuarios.php");
 ?>
