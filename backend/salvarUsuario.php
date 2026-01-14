@@ -1,5 +1,5 @@
 <?php
-    include __DIR__ . 'conexao.php';
+    include __DIR__ . '/conexao.php';
     use PHPMailer\PHPMailer\PHPMailer;
     use PHPMailer\PHPMailer\Exception;
    
