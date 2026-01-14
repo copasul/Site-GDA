@@ -1,11 +1,19 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
-	session_start();
-    $token = $_SESSION['token'];
+    include __DIR__ . '/conexao.php';
+    
+    session_start();
+    
+    $token = $_SESSION['token'] ?? '';
 
-    $sqlUpdate = $conn->query("UPDATE login_registro SET token=null WHERE token = '$token'");
+    if (!empty($token)) {
+        $sqlUpdate = $conn->prepare("UPDATE login_registro SET token=null WHERE token = :token");
+        $sqlUpdate->execute([':token' => $token]);
+    }
 
-    $_SESSION['token'] = "";   
-    header("Location: ".$urlBase."login.php");
+    $_SESSION = [];
+    session_destroy();
+    
+    header("Location: ../login.php");
+    exit;
 
 ?>
