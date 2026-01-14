@@ -1,148 +1,207 @@
 <?php
-//conexao com o banco
+    //conexao com o banco
     include __DIR__ . '/../backend/conexao.php';
     include __DIR__ . '/../backend/verificaLog.php';
 
-//verifica se o metodo get está recebendo
-    if(empty($_GET['propriedade'])){
-        $propriedade = "";
-    }else{
+    // Inicializa titulo e arrays para evitar erros no HTML
+    $titulo = $titulo ?? 'Copasul';
+    $listaTalhao = [];
+    $listaMaquina = [];
+    $listaRegistros = [];
+    $colunaComparativo = [];
+    $linhaComparativo = [];
+    $listMaquinas = [];
+    $listPerdaMaq = [];
+    
+    // Inicializa variáveis numéricas
+    $mediaPonderadaTalhao = 0;
+    $areaAcumulada = 0;
+    $perdaAculumada = 0;
+    $countMaq = ['count' => 0];
+
+    //verifica se o metodo get está recebendo
+    $propriedade = "";
+    if(!empty($_GET['propriedade'])){
         $propriedade = base64_decode($_GET['propriedade']);
     }
-    if(empty($_GET['safra'])){
-        $safra = "";
-    }else{
+    
+    $safra = "";
+    if(!empty($_GET['safra'])){
         $safra = base64_decode($_GET['safra']);
     }
 
-    //busca propriedade e safra para disponibilizar na busca
+    // Busca propriedade para o Select
     if(!empty($User['tipo'])){
         $sqlBusca = $conn->query('SELECT * FROM propriedades');
     }else{
         $idUser = $User['id'];
-        $sqlBusca = $conn->query("SELECT Propriedades.id, Propriedades.nome  FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE id_usuario = '$idUser' AND relacao_usuario_propriedade.status = 1;");
+        // Prepared Statement
+        $sqlBusca = $conn->prepare("
+            SELECT Propriedades.id, Propriedades.nome  
+            FROM propriedades 
+            INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade 
+            WHERE id_usuario = :idUser AND relacao_usuario_propriedade.status = 1
+        ");
+        $sqlBusca->execute([':idUser' => $idUser]);
     }
+    
     $sqlBusca2 = $conn->query('SELECT * FROM safra');
 
-
+    // Inicializa variável de contagem para o botão exportar
+    $buscarDados = ['count' => 0];
 
     if(!empty($propriedade) && !empty($safra)){
 
-        $sqlBusca4 = $conn->query("SELECT Count(*) as num  FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.id_usuario = '$idUser' AND relacao_usuario_propriedade.id_propriedade = $propriedade AND relacao_usuario_propriedade.status = 1;");
+        // Validação de acesso do usuário à propriedade
+        $sqlBusca4 = $conn->prepare("
+            SELECT Count(*) as num  
+            FROM propriedades 
+            INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade 
+            WHERE relacao_usuario_propriedade.id_usuario = :idUser 
+            AND relacao_usuario_propriedade.id_propriedade = :propriedade 
+            AND relacao_usuario_propriedade.status = 1
+        ");
+        $sqlBusca4->execute([
+            ':idUser' => $User['id'], 
+            ':propriedade' => $propriedade
+        ]);
         $bus = $sqlBusca4->fetch(PDO::FETCH_ASSOC);
 
         if(empty($User['tipo'])){
-            if($bus['num']<1){
+            if($bus['num'] < 1){
                 header("Location: index.php");
+                exit;
             }
         }
 
-
-        $sqlBuscaSafra = $conn->query("SELECT safra.id, safra.id_cultura, culturas.id, culturas.cultura FROM safra INNER JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.id = $safra");
+        // Busca informações da Safra e Cultura
+        $sqlBuscaSafra = $conn->prepare("
+            SELECT safra.id, safra.id_cultura, culturas.id, culturas.cultura 
+            FROM safra 
+            INNER JOIN culturas ON safra.id_cultura = culturas.id 
+            WHERE safra.id = :safra
+        ");
+        $sqlBuscaSafra->execute([':safra' => $safra]);
         $ListaSafra = $sqlBuscaSafra->fetch(PDO::FETCH_ASSOC);
 
+        // Define tabela dinamicamente (Validar se ListaSafra retornou algo é importante, mas mantive a lógica original)
+        $nomeTabela = 'dados_'.strtolower($ListaSafra['cultura'] ?? '');
 
-        $nomeTabela = 'dados_'.strtolower($ListaSafra['cultura']);
-        $sqlBuscaDados = $conn->query("SELECT count(*) as count FROM $nomeTabela WHERE id_safra = $safra AND id_propriedade = $propriedade");
-        $buscarDados = $sqlBuscaDados->fetch(PDO::FETCH_ASSOC);
+        // Verifica se existem dados na tabela dinâmica
+        // Nota: Tabelas dinâmicas não aceitam prepared statement no nome da tabela, mas ids sim.
+        if (!empty($ListaSafra)) {
+            $sqlBuscaDados = $conn->prepare("SELECT count(*) as count FROM $nomeTabela WHERE id_safra = :safra AND id_propriedade = :propriedade");
+            $sqlBuscaDados->execute([':safra' => $safra, ':propriedade' => $propriedade]);
+            $buscarDados = $sqlBuscaDados->fetch(PDO::FETCH_ASSOC);
+        }
+
         if($buscarDados['count'] > 0){
 
-        
-            //busca a média por talhao
-            $sqlBuscaTalhao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
+            // 1. Busca a média por talhao
+            $sqlBuscaTalhao = $conn->prepare("
+                SELECT id_talhao, AVG(perda_total) AS medidatalhao 
+                FROM $nomeTabela 
+                WHERE id_propriedade = :propriedade 
+                AND id_safra = :safra 
+                AND perda_total > 0 
+                GROUP BY id_talhao 
+                ORDER BY medidatalhao DESC
+            ");
+            $sqlBuscaTalhao->execute([':propriedade' => $propriedade, ':safra' => $safra]);
+            
             $n = 0;
-            $perdaAculumada= 0;
-            $areaAcumulada=0;
+            
             while($talhao = $sqlBuscaTalhao->fetch(PDO::FETCH_ASSOC)){
                 $idTalhao = $talhao['id_talhao'];
-                $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-                $listaTalhao[$n]['id'] = $idTalhao;
-                $listaTalhao[$n]['nome'] = $infoTalhao['nome'];
-                $listaTalhao[$n]['area'] = $infoTalhao['area'];
-                $listaTalhao[$n]['medidatalhao'] = $talhao['medidatalhao'];
-                $listaTalhao[$n]['perdaTotal'] = ($talhao['medidatalhao'] * $infoTalhao['area']); 
-                $perdaAculumada += ($talhao['medidatalhao'] * $infoTalhao['area']);
-                $areaAcumulada += $infoTalhao['area'];
-                $listaPerdasMedia[] = $talhao['medidatalhao'];
-                $n += 1;
+                
+                // Busca Info Talhão com Prepared Statement
+                $stmtInfo = $conn->prepare("SELECT * FROM Talhao WHERE id = :id");
+                $stmtInfo->execute([':id' => $idTalhao]);
+                $infoTalhao = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+
+                // Verificação para evitar erro se talhão foi excluído
+                if ($infoTalhao) {
+                    $listaTalhao[$n]['id'] = $idTalhao;
+                    $listaTalhao[$n]['nome'] = $infoTalhao['nome'];
+                    $listaTalhao[$n]['area'] = $infoTalhao['area'];
+                    $listaTalhao[$n]['medidatalhao'] = $talhao['medidatalhao'];
+                    $listaTalhao[$n]['perdaTotal'] = ($talhao['medidatalhao'] * $infoTalhao['area']); 
+                    
+                    $perdaAculumada += ($talhao['medidatalhao'] * $infoTalhao['area']);
+                    $areaAcumulada += $infoTalhao['area'];
+                    $listaPerdasMedia[] = $talhao['medidatalhao'];
+                    $n += 1;
+                }
             }
 
+            // Calculo da Média Ponderada da perda
+            $mediaPonderadaTalhao = ($areaAcumulada > 0) ? ($perdaAculumada/$areaAcumulada) : 0;
 
-            //Calculo da Média Ponderada da perda
-            $mediaPonderadaTalhao = $perdaAculumada/$areaAcumulada;
-
-
-            $sqlCountMaquinas = $conn->query("
+            // Contagem de Máquinas
+            $sqlCountMaquinas = $conn->prepare("
                 SELECT COUNT(DISTINCT id_maquina) AS count
                 FROM $nomeTabela
-                WHERE id_propriedade = $propriedade
-                AND id_safra = $safra
+                WHERE id_propriedade = :propriedade
+                AND id_safra = :safra
             ");
-
+            $sqlCountMaquinas->execute([':propriedade' => $propriedade, ':safra' => $safra]);
             $countMaq = $sqlCountMaquinas->fetch(PDO::FETCH_ASSOC);
             
-
-            $sqlMediaRegiao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
-            $n = 0;
-            $perdaAculumadaRegiao= 0;
-            $areaAcumuladaRegiao=0;
+            // Média Região (Para cálculo ponderado regional)
+            $sqlMediaRegiao = $conn->prepare("
+                SELECT id_talhao, AVG(perda_total) AS medidatalhao 
+                FROM $nomeTabela 
+                WHERE id_safra = :safra 
+                AND perda_total > 0 
+                GROUP BY id_talhao 
+                ORDER BY medidatalhao DESC
+            ");
+            $sqlMediaRegiao->execute([':safra' => $safra]);
+            
+            $perdaAculumadaRegiao = 0;
+            $areaAcumuladaRegiao = 0;
+            
             while($regiao = $sqlMediaRegiao->fetch(PDO::FETCH_ASSOC)){
                 $idTalhao = $regiao['id_talhao'];
-                $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-                $perdaAculumadaRegiao += ($regiao['medidatalhao'] * $infoTalhao['area']);
-                $areaAcumuladaRegiao += $infoTalhao['area'];
-                $n += 1;
+                
+                $stmtInfo = $conn->prepare("SELECT * FROM Talhao WHERE id = :id");
+                $stmtInfo->execute([':id' => $idTalhao]);
+                $infoTalhao = $stmtInfo->fetch(PDO::FETCH_ASSOC);
+                
+                // CORREÇÃO DO WARNING: Verifica se o talhão existe antes de acessar o array
+                if ($infoTalhao) {
+                    $perdaAculumadaRegiao += ($regiao['medidatalhao'] * $infoTalhao['area']);
+                    $areaAcumuladaRegiao += $infoTalhao['area'];
+                }
             }
 
-
-            //Calculo da Média Ponderada da perda
-            if($areaAcumuladaRegiao>0){
+            // Calculo da Média Ponderada da perda Região
+            if($areaAcumuladaRegiao > 0){
                 $mediaPonderadaRegiao = $perdaAculumadaRegiao/$areaAcumuladaRegiao;
             }else{
                 $mediaPonderadaRegiao = 0;
             }
-
-
         }
-
     }
-
-
-
-
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
     <head>
         <title><?php echo $titulo?> - Perda na Colheita</title>
 
-        <!-- Inclusão do arquivo 'head', contendo informações gerais -->
         <?php include __DIR__ . '/../head.php'; ?>
         <link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     </head>
 
 <body id="page-top">
-    <!-- Page Wrapper -->
     <div id="wrapper">
-        <!-- Sidebar -->
         <?php include __DIR__ . '/../nav-bar.php'; ?>
-        <!-- End of Sidebar -->
-
-        <!-- Content Wrapper -->
         <div id="content-wrapper" class="d-flex flex-column">
 
-            <!-- Main Content -->
             <div id="content">
 
-                <!-- Topbar -->
                 <?php include __DIR__ . '/../top-bar.php'; ?>
-                <!-- End of Topbar -->
-
-                <!-- Begin Page Content -->
                 <div class="container-fluid">
-                    <!-- Page Heading -->
                     <div id="logo-relatorio"><img src="../img/logo.png" alt="" width="30%"></div>
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         
@@ -187,7 +246,8 @@
 
                                         <?php while($dados2 = $sqlBusca2->fetch(PDO::FETCH_ASSOC)):
                                             $valor = base64_encode($dados2['id']);
-                                            $selected = ($safra === $valor) ? 'selected' : '';
+                                            $valId = $dados2['id']; // ID real para comparação
+                                            $selected = ($safra == $valId) ? 'selected' : '';
                                         ?>
                                             <option value="<?= $valor ?>" <?= $selected ?>>
                                                 <?= htmlspecialchars($dados2['descricao']) ?>
@@ -210,7 +270,6 @@
                     
                     <div class="row">
 
-                        <!-- Earnings (Monthly) Card Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-primary shadow h-100 py-2">
                                 <div class="card-body">
@@ -229,7 +288,6 @@
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
@@ -248,7 +306,6 @@
                             </div>
                         </div>
 
-                        <!-- Earnings (Monthly) Card Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-success shadow h-100 py-2">
                                 <div class="card-body">
@@ -267,7 +324,6 @@
                             </div>
                         </div>
 
-                        <!-- Pending Requests Card Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
                             <div class="card border-left-warning shadow h-100 py-2">
                                 <div class="card-body">
@@ -366,7 +422,7 @@
                                             </tfoot>
                                             <tbody>
                                                 <?php
-                                                   
+                                                    
                                                     foreach($listaTalhao as $dadosTalhao){
                                                 ?>
                                                 <tr>
@@ -423,20 +479,31 @@
                                             <tbody>
                                                 <?php
                                                 $n = 0;
-                                                $sqlBuscaMaquina = $conn->query("SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina");
-                                                    while($maquina = $sqlBuscaMaquina->fetch(PDO::FETCH_ASSOC)){
-                                                        $idMaquina = $maquina['id_maquina'];
-                                                        $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina'");
-                                                        $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
+                                                // Prepared Statement
+                                                $sqlBuscaMaquina = $conn->prepare("
+                                                    SELECT id_maquina, AVG(perda_total) AS MediaMaquina 
+                                                    FROM $nomeTabela 
+                                                    WHERE id_propriedade = :prop 
+                                                    AND id_safra = :safra 
+                                                    AND perda_total > 0 
+                                                    GROUP BY id_maquina
+                                                ");
+                                                $sqlBuscaMaquina->execute([':prop' => $propriedade, ':safra' => $safra]);
+                                                
+                                                while($maquina = $sqlBuscaMaquina->fetch(PDO::FETCH_ASSOC)){
+                                                    $idMaquina = $maquina['id_maquina'];
+                                                    
+                                                    $stmtInfoMaq = $conn->prepare("SELECT * FROM Maquina WHERE id = :id");
+                                                    $stmtInfoMaq->execute([':id' => $idMaquina]);
+                                                    $infoMaquina = $stmtInfoMaq->fetch(PDO::FETCH_ASSOC);
 
+                                                    if ($infoMaquina) {
                                                         $listaMaquina[$n]['id'] = $infoMaquina['id'];
                                                         $listaMaquina[$n]['nome'] = $infoMaquina['nome'];
                                                         $listaMaquina[$n]['modelo'] = $infoMaquina['modelo'];
                                                         $listaMaquina[$n]['MediaMaquina'] = $maquina['MediaMaquina'];
                                                         $listPerdaMaq[] = $maquina['MediaMaquina'];
-
-
-                                                       $n+=1; 
+                                                        $n+=1; 
                                                 ?>
                                                 <tr>
                                                     <td><?php echo $infoMaquina['nome']?></td>
@@ -445,6 +512,7 @@
                                                 </tr>
                                                 <?php
                                                     }
+                                                }
                                                 ?>
                                             </tbody>
                                         </table>
@@ -478,18 +546,30 @@
                                                 <tr>
                                                     <th>Talhao</th>
                                                     <?php
-                                                            $sqlBuscaMaquinas2 = $conn->query("SELECT id_maquina FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra AND perda_total > 0 GROUP BY id_maquina;");
-                                                            // echo ("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM dados_milho WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' GROUP BY id_talhao;");
+                                                            $sqlBuscaMaquinas2 = $conn->prepare("
+                                                                SELECT id_maquina 
+                                                                FROM $nomeTabela 
+                                                                WHERE id_propriedade = :prop 
+                                                                AND id_safra = :safra 
+                                                                AND perda_total > 0 
+                                                                GROUP BY id_maquina
+                                                            ");
+                                                            $sqlBuscaMaquinas2->execute([':prop' => $propriedade, ':safra' => $safra]);
+                                                            
                                                             while($Maquinas = $sqlBuscaMaquinas2->fetch(PDO::FETCH_ASSOC)){
                                                                 $idMaquinas = $Maquinas['id_maquina'];
                                                                 $listMaquinas[] = $idMaquinas;
-                                                                $sqlBuscaInfoMaquina2 = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquinas'");
-                                                                $infoMaquina2 = $sqlBuscaInfoMaquina2->fetch(PDO::FETCH_ASSOC);
+                                                                
+                                                                $stmtMaq2 = $conn->prepare("SELECT * FROM Maquina WHERE id = :id");
+                                                                $stmtMaq2->execute([':id' => $idMaquinas]);
+                                                                $infoMaquina2 = $stmtMaq2->fetch(PDO::FETCH_ASSOC);
 
-                                                                $colunaComparativo[] = $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];
+                                                                if($infoMaquina2){
+                                                                    $colunaComparativo[] = $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];
                                                         ?>
                                                             <th><?php echo $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];?></th>
                                                         <?php
+                                                                }
                                                              }
                                                         ?>
                                                 </tr>
@@ -520,12 +600,30 @@
                                                            
                                                             foreach($listMaquinas as $listMaq){
                                                                 
-                                                                $sqlBuscaMaquina2 = $conn->query("SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND id_talhao = $idTalhao2 AND id_maquina = $listMaq AND perda_total > 0 GROUP BY id_maquina");
-                                                                // echo "SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM dados_milho WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND id_talhao = $idTalhao2 AND id_maquina = $listMaq AND perda_total > 0 GROUP BY id_maquina";
+                                                                $sqlBuscaMaquina2 = $conn->prepare("
+                                                                    SELECT id_maquina, AVG(perda_total) AS MediaMaquina 
+                                                                    FROM $nomeTabela 
+                                                                    WHERE id_propriedade = :prop 
+                                                                    AND id_safra = :safra 
+                                                                    AND id_talhao = :talhao 
+                                                                    AND id_maquina = :maq 
+                                                                    AND perda_total > 0 
+                                                                    GROUP BY id_maquina
+                                                                ");
+                                                                $sqlBuscaMaquina2->execute([
+                                                                    ':prop' => $propriedade,
+                                                                    ':safra' => $safra,
+                                                                    ':talhao' => $idTalhao2,
+                                                                    ':maq' => $listMaq
+                                                                ]);
                                                                 
                                                                 $maquina2 = $sqlBuscaMaquina2->fetch(PDO::FETCH_ASSOC);
                                                                
-                                                                if(!empty($maquina2['MediaMaquina'])){$linhaComparativo[$n][$listMaq] = number_format($maquina2['MediaMaquina'], 2, ',', '.');}else{$linhaComparativo[$n][$listMaq] = "Sem registro";}
+                                                                if(!empty($maquina2['MediaMaquina'])){
+                                                                    $linhaComparativo[$n][$listMaq] = number_format($maquina2['MediaMaquina'], 2, ',', '.');
+                                                                }else{
+                                                                    $linhaComparativo[$n][$listMaq] = "Sem registro";
+                                                                }
                                                                     
                                                             ?>
                                                                 
@@ -579,54 +677,65 @@
                                                         <th>Observação</th>
                                                         <th>Usuário</th>
                                                     </tr>
-                                                </thead>
-                                                <tfoot>
-                                                    <tr>
-                                                        <th>Data</th>
-                                                        <th>Talhão</th>
-                                                        <th>Máquina</th>
-                                                        <th>Perda 2m</th>
-                                                        <th>Perda 30m</th>
-                                                        <th>Perda Total</th>
-                                                        <th>Observação</th>
-                                                        <th>Usuário</th>
-                                                    </tr>
-                                                </tfoot>
-                                                <tbody>
-                                                    <?php
-                                                    $n = 0;
-                                                         $sqlBuscaRegistro = $conn->query("SELECT * FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra");
-                                                         while($registros = $sqlBuscaRegistro->fetch(PDO::FETCH_ASSOC)){
-                                                            $idTalhao = $registros['id_talhao'];
-                                                            $idMaquina = $registros['id_maquina'];
-                                                            $idUsuario = $registros['id_usuario'];
-                                                            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                                                            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
+                                            </thead>
+                                            <tfoot>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Talhão</th>
+                                                    <th>Máquina</th>
+                                                    <th>Perda 2m</th>
+                                                    <th>Perda 30m</th>
+                                                    <th>Perda Total</th>
+                                                    <th>Observação</th>
+                                                    <th>Usuário</th>
+                                                </tr>
+                                            </tfoot>
+                                            <tbody>
+                                                <?php
+                                                $n = 0;
+                                                     $sqlBuscaRegistro = $conn->prepare("SELECT * FROM $nomeTabela WHERE id_propriedade = :prop AND id_safra = :safra");
+                                                     $sqlBuscaRegistro->execute([':prop' => $propriedade, ':safra' => $safra]);
 
-                                                            $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina' ");
-                                                            $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
+                                                     while($registros = $sqlBuscaRegistro->fetch(PDO::FETCH_ASSOC)){
+                                                        $idTalhao = $registros['id_talhao'];
+                                                        $idMaquina = $registros['id_maquina'];
+                                                        $idUsuario = $registros['id_usuario'];
+                                                        
+                                                        $stmtTal = $conn->prepare("SELECT * FROM Talhao WHERE id = :id ");
+                                                        $stmtTal->execute([':id' => $idTalhao]);
+                                                        $infoTalhao = $stmtTal->fetch(PDO::FETCH_ASSOC);
 
-                                                            $sqlBuscaInfoUsuario = $conn->query("SELECT * FROM Usuarios WHERE id = '$idUsuario' ");
-                                                            $infoUsuario = $sqlBuscaInfoUsuario->fetch(PDO::FETCH_ASSOC);
+                                                        $stmtMaq = $conn->prepare("SELECT * FROM Maquina WHERE id = :id ");
+                                                        $stmtMaq->execute([':id' => $idMaquina]);
+                                                        $infoMaquina = $stmtMaq->fetch(PDO::FETCH_ASSOC);
 
-                                                            $listaRegistros[$n]['data'] = date('d/m/Y', strtotime($registros['data_hora']));
-                                                            $listaRegistros[$n]['talhao'] = $infoTalhao['nome'];
-                                                            $listaRegistros[$n]['maquina'] = $infoMaquina['nome']." - ".$infoMaquina['modelo'];
-                                                            $listaRegistros[$n]['perda'] = number_format($registros['perda_total'], 2,',', '.');
-                                                            $listaRegistros[$n]['obs'] = $registros['obs'];
-                                                            $listaRegistros[$n]['usuario'] = $infoUsuario['nome'];
+                                                        $stmtUser = $conn->prepare("SELECT * FROM Usuarios WHERE id = :id ");
+                                                        $stmtUser->execute([':id' => $idUsuario]);
+                                                        $infoUsuario = $stmtUser->fetch(PDO::FETCH_ASSOC);
+
+                                                        // Verifica se os dados existem antes de exibir
+                                                        $nomeTalhao = $infoTalhao['nome'] ?? 'N/A';
+                                                        $nomeMaquina = ($infoMaquina) ? $infoMaquina['nome']." - ".$infoMaquina['modelo'] : 'N/A';
+                                                        $nomeUsuario = $infoUsuario['nome'] ?? 'N/A';
+
+                                                        $listaRegistros[$n]['data'] = date('d/m/Y', strtotime($registros['data_hora']));
+                                                        $listaRegistros[$n]['talhao'] = $nomeTalhao;
+                                                        $listaRegistros[$n]['maquina'] = $nomeMaquina;
+                                                        $listaRegistros[$n]['perda'] = number_format($registros['perda_total'], 2,',', '.');
+                                                        $listaRegistros[$n]['obs'] = $registros['obs'];
+                                                        $listaRegistros[$n]['usuario'] = $nomeUsuario;
                                                              
-                                                         
+                                                      
                                                     ?>
                                                     <tr>
                                                         <td><?php echo date('d/m/Y', strtotime($registros['data_hora']))?></td>
-                                                        <td><?php echo $infoTalhao['nome'];?></td>
-                                                        <td><?php echo $infoMaquina['nome']." - ".$infoMaquina['modelo']?></td>
+                                                        <td><?php echo $nomeTalhao;?></td>
+                                                        <td><?php echo $nomeMaquina?></td>
                                                         <td><?php echo number_format($registros['perda_2m'], 2,',', '.')?> sc/ha</td>
                                                         <td><?php echo number_format($registros['perda_30m'], 2,',', '.')?> sc/ha</td>
                                                         <td><?php echo number_format($registros['perda_total'], 2,',', '.')?> sc/ha</td>
                                                         <td><?php echo $registros['obs'];?></td>
-                                                        <td><?php echo $infoUsuario['nome'];?></td>
+                                                        <td><?php echo $nomeUsuario;?></td>
                                                     </tr>
                                                     <?php
                                                         $n += 1;
@@ -636,6 +745,7 @@
                                                     
                                                 </tbody>
                                             </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -658,12 +768,7 @@
                 </div>
 
                 
-                <!-- /.container-fluid -->
-
-            </div>
-            <!-- End of Main Content -->
-
-            <!-- Footer -->
+                </div>
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
@@ -671,41 +776,25 @@
                     </div>
                 </div>
             </footer>
-            <!-- End of Footer -->
-
+            </div>
         </div>
-        <!-- End of Content Wrapper -->
-
-    </div>
-    <!-- End of Page Wrapper -->
-
-    <!-- Scroll to Top Button-->
     <a class="scroll-to-top rounded" href="#page-top">
         <i class="fas fa-angle-up"></i>
     </a>
 
-    <!-- Logout Modal-->
-
-
-    <!-- Bootstrap core JavaScript-->
     <script src="../vendor/jquery/jquery.min.js"></script>
     <script src="../vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Core plugin JavaScript-->
     <script src="../vendor/jquery-easing/jquery.easing.min.js"></script>
 
-    <!-- Custom scripts for all pages-->
     <script src="../js/sb-admin-2.min.js"></script>
 
-    <!-- Page level plugins -->
     <script src="../vendor/datatables/jquery.dataTables.min.js"></script>
     <script src="../vendor/datatables/dataTables.bootstrap4.min.js"></script>
 
-    <!-- Page level custom scripts -->
     <script src="/../js/demo/datatables-demo.js"></script>
     <script src="/../vendor/chart.js/Chart.min.js"></script>
 
-    <!-- Page level custom scripts -->
     <?php include "/../js/demo/barTalhao.php" ?>
     <?php include "/../js/demo/area.php" ?>
 
@@ -779,7 +868,6 @@
                     ?>
             ];
             
-            
             let csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(";")).join("\n");
             var encodedUri = encodeURI(csvContent);
             window.open(encodedUri);
@@ -787,5 +875,4 @@
        
     </script>
 </body>
-
 </html>
