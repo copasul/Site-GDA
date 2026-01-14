@@ -1,14 +1,14 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/conexao.php';
     date_default_timezone_set('America/Sao_Paulo');
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
 
-    $idSafra = base64_decode(filter_input(INPUT_POST, 'idSafra', FILTER_SANITIZE_STRING));
-    $descricaoSafra = filter_input(INPUT_POST, 'descricaoSafra', FILTER_SANITIZE_STRING);
-    $dataInicio = filter_input(INPUT_POST, 'dataInicio', FILTER_SANITIZE_STRING);
-    $dataFinal = filter_input(INPUT_POST, 'dataFinal', FILTER_SANITIZE_STRING);
-    $cultura = filter_input(INPUT_POST, 'cultura', FILTER_SANITIZE_STRING);
+    $idSafra = base64_decode(filter_input(INPUT_POST, 'idSafra', FILTER_SANITIZE_SPECIAL_CHARS));
+    $descricaoSafra = filter_input(INPUT_POST, 'descricaoSafra', FILTER_SANITIZE_SPECIAL_CHARS);
+    $dataInicio = filter_input(INPUT_POST, 'dataInicio', FILTER_SANITIZE_SPECIAL_CHARS);
+    $dataFinal = filter_input(INPUT_POST, 'dataFinal', FILTER_SANITIZE_SPECIAL_CHARS);
+    $cultura = filter_input(INPUT_POST, 'cultura', FILTER_SANITIZE_SPECIAL_CHARS);
 
     
     $sqlInsert = $conn->prepare("UPDATE safra SET id_cultura=:cultura,descricao=:descricaoSafra,data_inicio=:dataInicio,data_fim=:dataFinal WHERE id = :idSafra");
