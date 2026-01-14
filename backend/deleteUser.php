@@ -9,11 +9,14 @@
     
     $email = "**".$busca['email'];
     
-    $sqlInsert = $conn->prepare("UPDATE usuarios SET status = 0, email = :email, token_inicial = null WHERE id = :id; UPDATE relacao_usuario_propriedade SET status= 0 WHERE id_usuario = :id");
+    $sqlInsert = $conn->prepare("UPDATE usuarios SET status = 0, email = :email, token_inicial = null WHERE id = :id");
     $sqlInsert->bindParam(':id', $id);
     $sqlInsert->bindParam(':email', $email);
     $sqlInsert->execute();
     
+    $sqlUpdateRel = $conn->prepare("UPDATE relacao_usuario_propriedade SET status = 0 WHERE id_usuario = :id");
+    $sqlUpdateRel->bindParam(':id', $id);
+    $sqlUpdateRel->execute();
     
     $sqlInsert2 = $conn->prepare("UPDATE login_registro SET token = null WHERE id_usuario = :id;");
     $sqlInsert2->bindParam(':id', $id);
