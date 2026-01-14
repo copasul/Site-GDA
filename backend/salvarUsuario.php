@@ -8,6 +8,9 @@
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
 
+    $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
+    $urlBase = $protocol . "://" . $_SERVER['HTTP_HOST'] . "/";
+
     $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_SPECIAL_CHARS);
     $telefone = filter_input(INPUT_POST, 'telefone', FILTER_SANITIZE_SPECIAL_CHARS);
