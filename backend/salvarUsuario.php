@@ -1,5 +1,5 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . 'conexao.php';
     use PHPMailer\PHPMailer\PHPMailer;
     use PHPMailer\PHPMailer\Exception;
    
@@ -8,10 +8,10 @@
     $dataCriacao = date('Y-m-d H:i:s');
     $usuario = 'joaoK';
 
-    $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_STRING);
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_STRING);
-    $telefone = filter_input(INPUT_POST, 'telefone', FILTER_SANITIZE_STRING);
-    $TipoUser = filter_input(INPUT_POST, 'TipoUser', FILTER_SANITIZE_STRING);
+    $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
+    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_SPECIAL_CHARS);
+    $telefone = filter_input(INPUT_POST, 'telefone', FILTER_SANITIZE_SPECIAL_CHARS);
+    $TipoUser = filter_input(INPUT_POST, 'TipoUser', FILTER_SANITIZE_SPECIAL_CHARS);
 
     
     $propriedade = $_POST['propriedade'];
