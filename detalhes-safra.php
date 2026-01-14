@@ -2,6 +2,9 @@
     include __DIR__ . '/backend/conexao.php';
     include __DIR__ . '/backend/verificaLog.php';
 
+    $titulo = $titulo ?? 'Copasul';
+
+    $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
     if(empty($_GET['id'])){
         $id = "";
     }else{
@@ -51,7 +54,7 @@
 
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800"><?php echo $dados['Descricao']?></h1>
+                        <h1 class="h3 mb-0 text-gray-800"><?php echo $dados['descricao']?></h1>
                     </div>
                     <form method="POST" action="backend/editarSafra.php">
                         <input type="hidden" name="idSafra" value="<?php echo base64_encode($id);?>">
@@ -64,7 +67,7 @@
                                     <div class="card-body">
                                             <div class="form-group">
                                                 <label for="descricaoSafra">Descrição*</label>
-                                                <input type="text" class="form-control" id="descricaoSafra" aria-describedby="descricaoSafraHelp" name="descricaoSafra" required value="<?php echo $dados['Descricao'];?>">
+                                                <input type="text" class="form-control" id="descricaoSafra" aria-describedby="descricaoSafraHelp" name="descricaoSafra" required value="<?php echo $dados['descricao'];?>">
                                                 <small id="descricaoSafraHelp" class="form-text text-muted">Será o nome que irá identificar a safra</small>
                                             </div>
                                             <div class="row">
