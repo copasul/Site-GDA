@@ -6,12 +6,12 @@
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
+    <head>
         <title>Propriedades</title>
 
+        <!-- Inclusão do arquivo 'head', contendo informações gerais -->
         <?php include __DIR__ . '/../head.php'; ?>
-        
-        <link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
+        <link href="/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     </head>
 
 <body id="page-top">
