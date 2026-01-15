@@ -422,28 +422,42 @@
                                             </tfoot>
                                             <tbody>
                                                 <?php
-                                                $n = 0;
-                                                $sqlBuscaMaquina = $conn->query("SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina");
+                                                    $n = 0;
+                                                    $sqlBuscaMaquina = $conn->prepare("
+                                                        SELECT id_maquina, AVG(perda_total) AS mediamaquina 
+                                                        FROM $nomeTabela 
+                                                        WHERE id_propriedade = :prop 
+                                                        AND id_safra = :safra 
+                                                        AND perda_total > 0 
+                                                        GROUP BY id_maquina
+                                                    ");
+                                                    $sqlBuscaMaquina->execute([':prop' => $propriedade, ':safra' => $safra]);
+
                                                     while($maquina = $sqlBuscaMaquina->fetch(PDO::FETCH_ASSOC)){
                                                         $idMaquina = $maquina['id_maquina'];
-                                                        $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina'");
-                                                        $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
+                                                        
+                                                        $stmtInfo = $conn->prepare("SELECT * FROM Maquina WHERE id = :id");
+                                                        $stmtInfo->execute([':id' => $idMaquina]);
+                                                        $infoMaquina = $stmtInfo->fetch(PDO::FETCH_ASSOC);
 
-                                                        $listaMaquina[$n]['id'] = $infoMaquina['id'];
-                                                        $listaMaquina[$n]['nome'] = $infoMaquina['nome'];
-                                                        $listaMaquina[$n]['modelo'] = $infoMaquina['modelo'];
-                                                        $listaMaquina[$n]['MediaMaquina'] = $maquina['MediaMaquina'];
-                                                        $listPerdaMaq[] = $maquina['MediaMaquina'];
+                                                        if ($infoMaquina) {
+                                                            $valorMedia = $maquina['mediamaquina'] ?? $maquina['MediaMaquina'] ?? 0;
 
-
-                                                       $n+=1; 
+                                                            $listaMaquina[$n]['id'] = $infoMaquina['id'];
+                                                            $listaMaquina[$n]['nome'] = $infoMaquina['nome'];
+                                                            $listaMaquina[$n]['modelo'] = $infoMaquina['modelo'];
+                                                            $listaMaquina[$n]['MediaMaquina'] = $valorMedia;
+                                                            
+                                                            $listPerdaMaq[] = $valorMedia;
+                                                            $n += 1; 
                                                 ?>
-                                                <tr>
-                                                    <td><?php echo $infoMaquina['nome']?></td>
-                                                    <td><?php echo $infoMaquina['modelo']?></td>
-                                                    <td><?php echo number_format($maquina['MediaMaquina'], 2, ',', ' ')?> sc/ha</td>
-                                                </tr>
+                                                    <tr>
+                                                        <td><?php echo $infoMaquina['nome']?></td>
+                                                        <td><?php echo $infoMaquina['modelo']?></td>
+                                                        <td><?php echo number_format((float)$valorMedia, 2, ',', ' ')?> sc/ha</td>
+                                                    </tr>
                                                 <?php
+                                                        } 
                                                     }
                                                 ?>
                                             </tbody>
@@ -525,11 +539,22 @@
                                                                 
                                                                 $maquina2 = $sqlBuscaMaquina2->fetch(PDO::FETCH_ASSOC);
                                                                
-                                                                if(!empty($maquina2['MediaMaquina'])){$linhaComparativo[$n][$listMaq] = number_format($maquina2['MediaMaquina'], 2, ',', '.');}else{$linhaComparativo[$n][$listMaq] = "Sem registro";}
-                                                                    
+                                                                $valorMedia2 = $maquina2['mediamaquina'] ?? $maquina2['MediaMaquina'] ?? null;
+
+                                                                if(!empty($valorMedia2)){
+                                                                    $linhaComparativo[$n][$listMaq] = number_format((float)$valorMedia2, 2, ',', '.');
+                                                                } else {
+                                                                    $linhaComparativo[$n][$listMaq] = "Sem registro";
+                                                                }                                                                    
                                                             ?>
                                                                 
-                                                                <td><?php if(!empty($maquina2['MediaMaquina'])){echo number_format($maquina2['MediaMaquina'], 2, ',', '.');}else{echo "Sem registro";}?></td>
+                                                            <td><?php 
+                                                                if(!empty($valorMedia2)){
+                                                                    echo number_format((float)$valorMedia2, 2, ',', '.');
+                                                                } else {
+                                                                    echo "Sem registro";
+                                                                }
+                                                            ?></td>
                                                         <?php
                                                             
                                                         }
@@ -706,8 +731,8 @@
     <script src="/../vendor/chart.js/Chart.min.js"></script>
 
     <!-- Page level custom scripts -->
-    <?php include "/../js/demo/barTalhao.php" ?>
-    <?php include "/../js/demo/area.php" ?>
+    <?php include __DIR__ . "/../js/demo/barTalhao.php" ?>
+    <?php include __DIR__ . "/../js/demo/area.php" ?>
 
     <script>
         function printHTML(){
