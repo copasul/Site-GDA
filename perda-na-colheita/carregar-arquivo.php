@@ -10,7 +10,7 @@
         <title>Propriedades</title>
 
         <!-- Inclusão do arquivo 'head', contendo informações gerais -->
-        <?php include __DIR__ . '../head.php'; ?>
+        <?php include __DIR__ . '/../head.php'; ?>
         <link href="../vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     </head>
 
@@ -18,7 +18,7 @@
     <!-- Page Wrapper -->
     <div id="wrapper">
         <!-- Sidebar -->
-        <?php include __DIR__ . '../nav-bar.php'; ?>
+        <?php include __DIR__ . '/../nav-bar.php'; ?>
         <!-- End of Sidebar -->
 
         <!-- Content Wrapper -->
@@ -28,7 +28,7 @@
             <div id="content">
 
                 <!-- Topbar -->
-                <?php include __DIR__ . '../top-bar.php'; ?>
+                <?php include __DIR__ . '/../top-bar.php'; ?>
                 <!-- End of Topbar -->
 
                 <!-- Begin Page Content -->
