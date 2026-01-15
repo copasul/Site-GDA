@@ -1,14 +1,8 @@
 <?php
-    include __DIR__ . '/backend/conexao.php';
-
-
+    include __DIR__ . '/../backend/conexao.php';
 
     $sqlBusca = $conn->query("SELECT * FROM propriedades");
-    
-
     $sqlBusca2 = $conn->query("SELECT * FROM safra");
-  
-
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
