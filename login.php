@@ -4,6 +4,9 @@ if(!empty($_GET['action'])){
 }else{
     $action = "login";
 }
+
+$titulo = $titulo ?? '';
+
 ?>
 
 <!DOCTYPE html>

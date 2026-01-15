@@ -1,10 +1,7 @@
 <?php
-    // Define a URL base para voltar uma pasta (../)
-    // Isso é essencial para os links do menu (top-bar/nav-bar) funcionarem
     $urlBase = '../';
 
     include __DIR__ . '/../backend/conexao.php';
-    // Importante: verificaLog carrega a sessão e define a variável $User
     include __DIR__ . '/../backend/verificaLog.php'; 
 
     $sqlBusca = $conn->query("SELECT * FROM propriedades");
