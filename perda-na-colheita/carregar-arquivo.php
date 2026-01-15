@@ -1,5 +1,5 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/backend/conexao.php';
 
 
 
