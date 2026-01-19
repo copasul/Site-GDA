@@ -44,7 +44,7 @@ try{
             $senha = md5($senha.$hash."%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
                 
                 if ($senha == $dados['senha']) {
-                    $sqlAcesso = $conn->prepare("INSERT INTO login_registro(data_hora, validade, id_usuario, token, tipo_acesso, ip,  marca-dispositivo, modelo-dispositivo, versao-dispositivo, pais-dispositivo) VALUES (:dataHora, :validade,:idUsuario, :token, :tipo_acesso, :ip, :marca, :modelo, :android, :pais)");
+                    $sqlAcesso = $conn->prepare("INSERT INTO login_registro(data_hora, validade, id_usuario, token, tipo_acesso, ip,  marca_dispositivo, modelo_dispositivo, versao_dispositivo, pais_dispositivo) VALUES (:dataHora, :validade,:idUsuario, :token, :tipo_acesso, :ip, :marca, :modelo, :android, :pais)");
                     $sqlAcesso->bindParam(':dataHora', $dataAtual);
                     $sqlAcesso->bindParam(':validade', $validade);
                     $sqlAcesso->bindParam(':idUsuario', $idUsuario);
