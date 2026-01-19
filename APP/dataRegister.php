@@ -1,11 +1,11 @@
 <?php
-include __DIR__ . '../backend/conexao.php';
+include __DIR__ . '/../backend/conexao.php';
 
 date_default_timezone_set('America/Sao_paulo');
 $dataAtual = date("Y-m-d H:i:s");
     
     
-$token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_STRING);
+$token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_SPECIAL_CHARS);
 $cultura = filter_input(INPUT_POST, 'cultura', FILTER_SANITIZE_SPECIAL_CHARS);
 $property = filter_input(INPUT_POST, 'propriedade', FILTER_SANITIZE_SPECIAL_CHARS);
 $talhao = filter_input(INPUT_POST, 'talhao', FILTER_SANITIZE_SPECIAL_CHARS);
