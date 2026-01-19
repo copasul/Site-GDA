@@ -5,13 +5,13 @@ $dataAtual = date("Y/m/d H:i:s");
 $validade = date("Y-m-d H:i:s", strtotime('+1 months'));
 
 
-$email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-$senha = filter_input(INPUT_POST, 'senha', FILTER_SANITIZE_STRING);
+$email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_SPECIAL_CHARS);
+$senha = filter_input(INPUT_POST, 'senha', FILTER_SANITIZE_SPECIAL_CHARS);
 
-$android = filter_input(INPUT_POST, 'android', FILTER_SANITIZE_STRING);
-$pais = filter_input(INPUT_POST, 'pais', FILTER_SANITIZE_STRING);
-$marca = filter_input(INPUT_POST, 'marca', FILTER_SANITIZE_STRING);
-$modelo = filter_input(INPUT_POST, 'modelo', FILTER_SANITIZE_STRING);
+$android = filter_input(INPUT_POST, 'android', FILTER_SANITIZE_SPECIAL_CHARS);
+$pais = filter_input(INPUT_POST, 'pais', FILTER_SANITIZE_SPECIAL_CHARS);
+$marca = filter_input(INPUT_POST, 'marca', FILTER_SANITIZE_SPECIAL_CHARS);
+$modelo = filter_input(INPUT_POST, 'modelo', FILTER_SANITIZE_SPECIAL_CHARS);
 
 
 $ip = $_SERVER["REMOTE_ADDR"];
@@ -26,7 +26,7 @@ $error = array(
     
 
 try{
-    require_once __DIR__ . '/conexao.php'
+    require_once __DIR__ . '/../backend/conexao.php'
 ;
     //  $sqlInsert = $conn->query("INSERT INTO teste(valor) VALUES ('$senha')");
     try{
