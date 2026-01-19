@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: application/json');
 date_default_timezone_set('America/Sao_paulo');
 
 $dataAtual = date("Y/m/d H:i:s");
@@ -35,11 +36,12 @@ try{
         $sqlBusca->execute();
         $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
 
-        $idUsuario = $dados['id'];
+        if ($dados &&!empty($dados['email'])) {
 
-        if (!empty($dados['email'])) {
+            $idUsuario = $dados['id'];
             $hash = $dados['hash'];
-                $senha = md5($senha.$hash."%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
+            
+            $senha = md5($senha.$hash."%wUgk3S@3yq6cqrxP%H!&CtHV*YvI$");
                 
                 if ($senha == $dados['senha']) {
                     $sqlAcesso = $conn->prepare("INSERT INTO login_registro(data_hora, validade, id_usuario, token, tipo_acesso, ip,  marca-dispositivo, modelo-dispositivo, versao-dispositivo, pais-dispositivo) VALUES (:dataHora, :validade,:idUsuario, :token, :tipo_acesso, :ip, :marca, :modelo, :android, :pais)");
