@@ -1,9 +1,9 @@
 <?php
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/../backend/conexao.php';
     date_default_timezone_set('America/Sao_paulo');
     
     
-    $token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_STRING);
+    $token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_SPECIAL_CHARS);
     //busca tokens
     $sqlBusca = $conn->query("SELECT * FROM login_registro WHERE token= '$token'");
     $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
