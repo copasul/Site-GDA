@@ -36,6 +36,15 @@
         
         
         $nomeTabela = 'dados_'.strtolower($ultimaSafra['cultura']);
+
+        $gra_maq_perda = array();
+        $gra_ta_perda = array();
+        $listaMaq = array();
+        $listaTal = array();
+        $listaPerdaPropriedade = array();
+        $listaPro = array();
+        $lisPro = array();
+
         while($listPropriedade = $sqlPropriedades->fetch(PDO::FETCH_ASSOC)){
             $listaPro[] = base64_encode($listPropriedade['id']."-".$listPropriedade['nome']);
             $lisPro[base64_encode($listPropriedade['id'])] = base64_encode($listPropriedade['nome']);
