@@ -1,5 +1,5 @@
 <?php 
-    include __DIR__ . '../backend/conexao.php';
+    include __DIR__ . '/../backend/conexao.php';
     date_default_timezone_set('America/Sao_paulo');
     $dataAtual = date("Y-m-d H:i:s");
 
