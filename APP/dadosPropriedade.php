@@ -31,19 +31,25 @@
         $dataAtual = date('Y-m-d');
         $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.Descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('2022-01-12') ORDER BY safra.data_fim DESC LIMIT 1");
         $ultimaSafra = $sqlUltimaSafra->fetch(PDO::FETCH_ASSOC);
-        $safra = $ultimaSafra['id'];
-        $safraDesc = $ultimaSafra['Descricao'];
-        
-        
-        $nomeTabela = 'dados_'.strtolower($ultimaSafra['cultura']);
 
-        $gra_maq_perda = array();
-        $gra_ta_perda = array();
-        $listaMaq = array();
-        $listaTal = array();
-        $listaPerdaPropriedade = array();
-        $listaPro = array();
-        $lisPro = array();
+        if ($ultimaSafra) {
+            $safra = $ultimaSafra['id'];
+            $safraDesc = $ultimaSafra['Descricao'];
+            $nomeTabela = 'dados_'.strtolower($ultimaSafra['cultura']);
+        } else {
+            // Se não houver safra, retornamos erro ou definimos padrão para não travar
+            // Aqui optei por retornar erro para você saber o que houve
+            echo json_encode(array('response' => 'error', 'msg' => 'Nenhuma safra encontrada'));
+            exit;
+        }
+
+        $listaPro = [];
+        $lisPro = [];
+        $listaMaq = [];
+        $listaTal = [];
+        $listaPerdaPropriedade = [];
+        $gra_maq_perda = [];
+        $gra_ta_perda = [];
 
         while($listPropriedade = $sqlPropriedades->fetch(PDO::FETCH_ASSOC)){
             $listaPro[] = base64_encode($listPropriedade['id']."-".$listPropriedade['nome']);
@@ -121,7 +127,7 @@
         
        
         
-        
+        if(empty($lisPro)) $lisPro = (object)[];
         
         $envio = array('listPro'=>$lisPro,
                       'propriedade'=>$listaPro,
