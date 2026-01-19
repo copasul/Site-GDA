@@ -1,9 +1,10 @@
 <?php 
+    header('Content-Type: application/json');
     include __DIR__ . '/../backend/conexao.php';
     date_default_timezone_set('America/Sao_paulo');
     $dataAtual = date("Y-m-d H:i:s");
 
-    $tokenAcess = $_POST['token'];
+    $tokenAcess = $_POST['token'] ?? '';
 
 
     $sqlToken = $conn->query("SELECT * FROM login_registro WHERE token = '$tokenAcess' AND validade > date('$dataAtual')");
