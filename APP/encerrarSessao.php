@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: application/json');
 include __DIR__ . '/../backend/conexao.php';
 
 $token = $_POST['token'] ?? ''; 
