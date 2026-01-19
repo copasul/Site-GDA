@@ -1,6 +1,6 @@
 <?php
-include __DIR__ . '../backend/conexao.php';
-$token = filter_input(INPUT_GET, 'token', FILTER_SANITIZE_STRING);
+include __DIR__ . '/../backend/conexao.php';
+$token = filter_input(INPUT_GET, 'token', FILTER_SANITIZE_SPECIAL_CHARS);
 $cultura = filter_input(INPUT_GET, 'cultura', FILTER_SANITIZE_SPECIAL_CHARS);
 $UserId = filter_input(INPUT_GET, 'userId', FILTER_SANITIZE_SPECIAL_CHARS);
 $property = filter_input(INPUT_GET, 'property', FILTER_SANITIZE_SPECIAL_CHARS);
