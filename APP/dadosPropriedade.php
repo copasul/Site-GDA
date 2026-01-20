@@ -35,7 +35,6 @@
             exit;
         }
 
-        // 2. BUSCA TIPO DE USUÁRIO E PROPRIEDADES
         $idUsuario = $dados['id_usuario'];
     
         $sqlBuscaTipo = $conn->query("SELECT * FROM usuarios WHERE id= '$idUsuario'"); 
@@ -47,7 +46,6 @@
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
         
-        // 3. BUSCA DA SAFRA (CRÍTICO: ONDE O ERRO ACONTECIA)
         $dataCorte = '2022-01-12';
         $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
         
@@ -57,8 +55,7 @@
 
         $ultimaSafra = $sqlUltimaSafra->fetch(PDO::FETCH_ASSOC);
 
-        // Se não encontrar safra, para aqui antes de quebrar o código
-        if (!$ultimaSafra) {
+=        if (!$ultimaSafra) {
             echo json_encode(array('response' => 'error', 'msg' => 'Nenhuma safra encontrada para o período.'));
             exit;
         }
@@ -66,43 +63,36 @@
         $safra = $ultimaSafra['id'];
         $safraDesc = $ultimaSafra['descricao'];
         
-        // Verifica se veio a cultura para montar o nome da tabela
         if (empty($ultimaSafra['cultura'])) {
             throw new Exception("Safra encontrada, mas sem cultura definida.");
         }
         $nomeTabela = 'dados_'.strtolower($ultimaSafra['cultura']);
 
-        // 4. INICIALIZAÇÃO DE ARRAYS (PARA EVITAR WARNINGS)
         $listaPro = [];
-        $lisPro = (object)[]; // Objeto para JSON {}
+        $lisPro = (object)[]; 
         $listaMaq = [];
         $listaTal = [];
         $listaPerdaPropriedade = [];
-        $gra_maq_perda = (object)[]; // Objeto para JSON {}
-        $gra_ta_perda = (object)[];  // Objeto para JSON {}
+        $gra_maq_perda = (object)[]; 
+        $gra_ta_perda = (object)[]; 
 
-        // 5. LOOP DE PROPRIEDADES
         while ($listPropriedade = $sqlPropriedades->fetch(PDO::FETCH_ASSOC)) {
             $idPropriedade = $listPropriedade['id'];
             
-            // Cache do encode para usar como chave do array
             $idPropEncoded = base64_encode($idPropriedade);
             
             $listaPro[] = base64_encode($idPropriedade."-".$listPropriedade['nome']);
             $lisPro->$idPropEncoded = base64_encode($listPropriedade['nome']);
             
-            // Queries de Máquinas e Talhões
             $sqlMaquina = $conn->query("SELECT id, nome, modelo FROM maquina WHERE id_propriedade = '$idPropriedade' AND status = 1");
             $sqlTalhao = $conn->query("SELECT id, nome FROM talhao WHERE id_propriedade = '$idPropriedade' AND status = 1");
             
-            // Queries de Perdas (Verifica se tabela existe via Try/Catch global se der erro SQL)
-            $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as A INNER JOIN Talhao ON A.id_talhao = Talhao.id");
+            $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
             
-            $sqlPerdaMaquina = $conn->query("SELECT A.MediaMaquina, Maquina.nome, Maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY MediaMaquina DESC LIMIT 5) as A INNER JOIN Maquina ON A.id_maquina = Maquina.id");
+            $sqlPerdaMaquina = $conn->query("SELECT a.mediaMaquina, maquina.nome, maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS mediamaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY mediamaquina DESC LIMIT 5) as a INNER JOIN maquina ON a.id_maquina = maquina.id");
             
-            $sqlPerdaTalhaoMedia = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC) as A INNER JOIN Talhao ON A.id_talhao = Talhao.id");
+            $sqlPerdaTalhaoMedia = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
 
-            // --- Processamento Máquinas ---
             $listaMaqUni = [base64_encode("--") => base64_encode("Selecione...")];
             if ($sqlMaquina) {
                 while($listMaquina = $sqlMaquina->fetch(PDO::FETCH_ASSOC)){
@@ -110,7 +100,6 @@
                 }
             }
 
-            // --- Processamento Talhões ---
             $listaTalUni = [base64_encode("--") => base64_encode("Selecione...")];
             if ($sqlTalhao) {
                 while($listTalhao = $sqlTalhao->fetch(PDO::FETCH_ASSOC)){
@@ -118,15 +107,13 @@
                 }
             }
 
-            // --- Processamento Perdas Máquinas ---
             $listaMaqPerda = [];
             if ($sqlPerdaMaquina) {
                 while($listPerMaq = $sqlPerdaMaquina->fetch(PDO::FETCH_ASSOC)){
-                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['MediaMaquina']);
+                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['mediamaquina']);
                 }
             }
 
-            // --- Processamento Perdas Talhões ---
             $listaTaPerda = [];
             if ($sqlPerdaTalhao) {
                 while($listPerTa = $sqlPerdaTalhao->fetch(PDO::FETCH_ASSOC)){
@@ -176,8 +163,7 @@
         echo json_encode($envio);
 
     } catch (Exception $e) {
-        // CATCH-ALL: Qualquer erro (Banco, Lógica, PHP) cai aqui e retorna JSON válido
-        http_response_code(200); // Retorna 200 pro Kodular conseguir ler a mensagem de erro
+        http_response_code(200);
         echo json_encode(array(
             'response' => 'error', 
             'msg' => 'Erro no Servidor: ' . $e->getMessage()
