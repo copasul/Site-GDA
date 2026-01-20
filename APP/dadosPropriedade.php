@@ -46,16 +46,57 @@
         } else { // Tipo Copasul
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
-        
+    
+/////////////////////////////////////
+
+/////////////////////////////////////
+
         // 3. BUSCA DA SAFRA 
-        $dataCorte = '2023-01-12'; //$dataCorte = date('Y-m-d');
-        $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
+        $dataCorte = date('Y-m-d'); 
         
-        if (!$sqlUltimaSafra) {
-            throw new Exception("Erro ao consultar safra: " . print_r($conn->errorInfo(), true));
+        // Traz as 10 últimas safras para garantir que acharemos alguma com dados
+        $sqlBuscaSafras = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 10");
+        
+        if (!$sqlBuscaSafras) {
+             throw new Exception("Erro ao consultar safras.");
         }
 
-        $ultimaSafra = $sqlUltimaSafra->fetch(PDO::FETCH_ASSOC);
+        $ultimaSafra = null;
+        $safraComDadosEncontrada = false;
+
+        // LOOP DE VERIFICAÇÃO: Testa uma por uma até achar uma com dados
+        while ($candidata = $sqlBuscaSafras->fetch(PDO::FETCH_ASSOC)) {
+            
+            // 1. Resolve o nome da Cultura (Maiúscula/Minúscula)
+            $nomeCultura = !empty($candidata['cultura']) ? $candidata['cultura'] : 
+                          (!empty($candidata['Cultura']) ? $candidata['Cultura'] : "");
+            
+            if (empty($nomeCultura)) continue; // Se não tem cultura, essa safra é inútil, pula pra próxima
+
+            // 2. Monta o nome da tabela
+            $tabelaTeste = 'dados_' . strtolower($nomeCultura);
+
+            $testeDados = $conn->query("SELECT id FROM $tabelaTeste WHERE id_safra = '{$candidata['id']}' LIMIT 1");
+
+            // Se achou pelo menos 1 registro
+            if ($testeDados && $testeDados->rowCount() > 0) {
+                $ultimaSafra = $candidata;
+                $safraComDadosEncontrada = true;
+                break; // Para o loop
+            }
+        }
+
+        if (!$ultimaSafra) {
+            $sqlBuscaSafras->execute(); 
+            $ultimaSafra = $sqlBuscaSafras->fetch(PDO::FETCH_ASSOC);
+        }
+
+
+//////////////////////////////////////
+
+
+//////////////////////////////////////
+
 
         // Se não encontrar safra, para aqui antes de quebrar o código
         if (!$ultimaSafra) {
