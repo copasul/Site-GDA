@@ -47,8 +47,8 @@
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
         
-        // 3. BUSCA DA SAFRA (CRÍTICO: ONDE O ERRO ACONTECIA)
-        $dataCorte = '2022-01-12';
+        // 3. BUSCA DA SAFRA 
+        $dataCorte = date('Y-m-d');
         $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
         
         if (!$sqlUltimaSafra) {
@@ -64,7 +64,8 @@
         }
 
         $safra = $ultimaSafra['id'];
-        $safraDesc = $ultimaSafra['descricao'];
+        $safraDesc = !empty($ultimaSafra['Descricao']) ? $ultimaSafra['Descricao'] : 
+                    (!empty($ultimaSafra['descricao']) ? $ultimaSafra['descricao'] : "Safra Desconhecida");
         
         // Verifica se veio a cultura para montar o nome da tabela
         if (empty($ultimaSafra['cultura'])) {
