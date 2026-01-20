@@ -1,15 +1,10 @@
 <?php
-    // CONFIGURAÇÕES INICIAIS
-    // Desativa a exibição de erros no HTML para não quebrar o JSON
     ini_set('display_errors', 0);
     error_reporting(E_ALL);
 
-    // Define que a resposta será sempre JSON
     header('Content-Type: application/json; charset=utf-8');
 
     try {
-        // CONEXÃO
-        // Usa __DIR__ para garantir que o caminho esteja correto independente de onde o script é chamado
         if (!file_exists(__DIR__ . '/../backend/conexao.php')) {
             throw new Exception("Arquivo de conexão não encontrado.");
         }
@@ -17,20 +12,17 @@
         
         date_default_timezone_set('America/Sao_paulo');
         
-        // 1. VALIDAÇÃO DO TOKEN
         $token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_SPECIAL_CHARS);
 
         if (!$token) {
             throw new Exception("Token não informado.");
         }
 
-        // Usa Prepared Statement para segurança
         $sqlBusca = $conn->prepare("SELECT * FROM login_registro WHERE token = :token");
         $sqlBusca->execute([':token' => $token]);
         $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
         
         if (!$dados) {
-            // Token inválido ou expirado
             echo json_encode(array('response'=> 'error', 'msg' => 'Token inválido'));
             exit;
         }
@@ -40,9 +32,9 @@
         $sqlBuscaTipo = $conn->query("SELECT * FROM usuarios WHERE id= '$idUsuario'"); 
         $tipo = $sqlBuscaTipo->fetch(PDO::FETCH_ASSOC);
         
-        if (empty($tipo['tipo'])) { // Tipo Externo
+        if (empty($tipo['tipo'])) {
             $sqlPropriedades = $conn->query("SELECT propriedades.id, propriedades.nome FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.status = 1 AND relacao_usuario_propriedade.id_usuario = '$idUsuario' AND propriedades.status = 1");
-        } else { // Tipo Copasul
+        } else {
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
         
@@ -89,7 +81,7 @@
             
             $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
             
-            $sqlPerdaMaquina = $conn->query("SELECT a.mediaMaquina, maquina.nome, maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS mediamaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY mediamaquina DESC LIMIT 5) as a INNER JOIN maquina ON a.id_maquina = maquina.id");
+            $sqlPerdaMaquina = $conn->query("SELECT a.mediamaquina, maquina.nome, maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS mediamaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY mediamaquina DESC LIMIT 5) as a INNER JOIN maquina ON a.id_maquina = maquina.id");
             
             $sqlPerdaTalhaoMedia = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
 
@@ -121,7 +113,6 @@
                 }
             }
 
-            // --- Cálculo Média ---
             $perdaAculumada = 0;
             $areaAcumulada = 0;
             if ($sqlPerdaTalhaoMedia) {
@@ -133,12 +124,10 @@
             
             $mediaPonderadaTalhao = ($areaAcumulada > 0) ? ($perdaAculumada/$areaAcumulada) : 0;
             
-            // --- Popula Globais ---
             $listaMaq[$idPropEncoded] = $listaMaqUni;
             $listaTal[$idPropEncoded] = $listaTalUni;
             $listaPerdaPropriedade[$idPropEncoded] = base64_encode(number_format($mediaPonderadaTalhao, 2, ',', '.'));
             
-            // Adiciona aos objetos (apenas se tiver dados, mas mantém estrutura segura)
             if(!empty($listaMaqPerda)){
                 $gra_maq_perda->$idPropEncoded = $listaMaqPerda;
             }
@@ -147,9 +136,8 @@
             }
         }
         
-        // 6. ENVIO DA RESPOSTA
         $envio = array(
-            'response' => 'success', // Flag de sucesso para controle
+            'response' => 'success', 
             'listPro' => $lisPro,
             'propriedade' => $listaPro,
             'talhao' => $listaTal, 
