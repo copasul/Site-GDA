@@ -1,10 +1,15 @@
 <?php
+    // CONFIGURAÇÕES INICIAIS
+    // Desativa a exibição de erros no HTML para não quebrar o JSON
     ini_set('display_errors', 0);
     error_reporting(E_ALL);
 
+    // Define que a resposta será sempre JSON
     header('Content-Type: application/json; charset=utf-8');
 
     try {
+        // CONEXÃO
+        // Usa __DIR__ para garantir que o caminho esteja correto independente de onde o script é chamado
         if (!file_exists(__DIR__ . '/../backend/conexao.php')) {
             throw new Exception("Arquivo de conexão não encontrado.");
         }
@@ -12,32 +17,37 @@
         
         date_default_timezone_set('America/Sao_paulo');
         
+        // 1. VALIDAÇÃO DO TOKEN
         $token = filter_input(INPUT_POST, 'token', FILTER_SANITIZE_SPECIAL_CHARS);
 
         if (!$token) {
             throw new Exception("Token não informado.");
         }
 
+        // Usa Prepared Statement para segurança
         $sqlBusca = $conn->prepare("SELECT * FROM login_registro WHERE token = :token");
         $sqlBusca->execute([':token' => $token]);
         $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
         
         if (!$dados) {
+            // Token inválido ou expirado
             echo json_encode(array('response'=> 'error', 'msg' => 'Token inválido'));
             exit;
         }
 
+        // 2. BUSCA TIPO DE USUÁRIO E PROPRIEDADES
         $idUsuario = $dados['id_usuario'];
     
         $sqlBuscaTipo = $conn->query("SELECT * FROM usuarios WHERE id= '$idUsuario'"); 
         $tipo = $sqlBuscaTipo->fetch(PDO::FETCH_ASSOC);
         
-        if (empty($tipo['tipo'])) {
+        if (empty($tipo['tipo'])) { // Tipo Externo
             $sqlPropriedades = $conn->query("SELECT propriedades.id, propriedades.nome FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.status = 1 AND relacao_usuario_propriedade.id_usuario = '$idUsuario' AND propriedades.status = 1");
-        } else {
+        } else { // Tipo Copasul
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
         
+        // 3. BUSCA DA SAFRA (CRÍTICO: ONDE O ERRO ACONTECIA)
         $dataCorte = '2022-01-12';
         $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
         
@@ -47,7 +57,8 @@
 
         $ultimaSafra = $sqlUltimaSafra->fetch(PDO::FETCH_ASSOC);
 
-=        if (!$ultimaSafra) {
+        // Se não encontrar safra, para aqui antes de quebrar o código
+        if (!$ultimaSafra) {
             echo json_encode(array('response' => 'error', 'msg' => 'Nenhuma safra encontrada para o período.'));
             exit;
         }
@@ -55,36 +66,43 @@
         $safra = $ultimaSafra['id'];
         $safraDesc = $ultimaSafra['descricao'];
         
+        // Verifica se veio a cultura para montar o nome da tabela
         if (empty($ultimaSafra['cultura'])) {
             throw new Exception("Safra encontrada, mas sem cultura definida.");
         }
         $nomeTabela = 'dados_'.strtolower($ultimaSafra['cultura']);
 
+        // 4. INICIALIZAÇÃO DE ARRAYS (PARA EVITAR WARNINGS)
         $listaPro = [];
-        $lisPro = (object)[]; 
+        $lisPro = (object)[]; // Objeto para JSON {}
         $listaMaq = [];
         $listaTal = [];
         $listaPerdaPropriedade = [];
-        $gra_maq_perda = (object)[]; 
-        $gra_ta_perda = (object)[]; 
+        $gra_maq_perda = (object)[]; // Objeto para JSON {}
+        $gra_ta_perda = (object)[];  // Objeto para JSON {}
 
+        // 5. LOOP DE PROPRIEDADES
         while ($listPropriedade = $sqlPropriedades->fetch(PDO::FETCH_ASSOC)) {
             $idPropriedade = $listPropriedade['id'];
             
+            // Cache do encode para usar como chave do array
             $idPropEncoded = base64_encode($idPropriedade);
             
             $listaPro[] = base64_encode($idPropriedade."-".$listPropriedade['nome']);
             $lisPro->$idPropEncoded = base64_encode($listPropriedade['nome']);
             
+            // Queries de Máquinas e Talhões
             $sqlMaquina = $conn->query("SELECT id, nome, modelo FROM maquina WHERE id_propriedade = '$idPropriedade' AND status = 1");
             $sqlTalhao = $conn->query("SELECT id, nome FROM talhao WHERE id_propriedade = '$idPropriedade' AND status = 1");
             
-            $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
+            // Queries de Perdas (Verifica se tabela existe via Try/Catch global se der erro SQL)
+            $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as A INNER JOIN Talhao ON A.id_talhao = Talhao.id");
             
-            $sqlPerdaMaquina = $conn->query("SELECT a.mediamaquina, maquina.nome, maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS mediamaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY mediamaquina DESC LIMIT 5) as a INNER JOIN maquina ON a.id_maquina = maquina.id");
+            $sqlPerdaMaquina = $conn->query("SELECT A.MediaMaquina, Maquina.nome, Maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY MediaMaquina DESC LIMIT 5) as A INNER JOIN Maquina ON A.id_maquina = Maquina.id");
             
-            $sqlPerdaTalhaoMedia = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC) as a INNER JOIN talhao ON a.id_talhao = talhao.id");
+            $sqlPerdaTalhaoMedia = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC) as A INNER JOIN Talhao ON A.id_talhao = Talhao.id");
 
+            // --- Processamento Máquinas ---
             $listaMaqUni = [base64_encode("--") => base64_encode("Selecione...")];
             if ($sqlMaquina) {
                 while($listMaquina = $sqlMaquina->fetch(PDO::FETCH_ASSOC)){
@@ -92,6 +110,7 @@
                 }
             }
 
+            // --- Processamento Talhões ---
             $listaTalUni = [base64_encode("--") => base64_encode("Selecione...")];
             if ($sqlTalhao) {
                 while($listTalhao = $sqlTalhao->fetch(PDO::FETCH_ASSOC)){
@@ -99,13 +118,15 @@
                 }
             }
 
+            // --- Processamento Perdas Máquinas ---
             $listaMaqPerda = [];
             if ($sqlPerdaMaquina) {
                 while($listPerMaq = $sqlPerdaMaquina->fetch(PDO::FETCH_ASSOC)){
-                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['mediamaquina']);
+                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['MediaMaquina']);
                 }
             }
 
+            // --- Processamento Perdas Talhões ---
             $listaTaPerda = [];
             if ($sqlPerdaTalhao) {
                 while($listPerTa = $sqlPerdaTalhao->fetch(PDO::FETCH_ASSOC)){
@@ -113,6 +134,7 @@
                 }
             }
 
+            // --- Cálculo Média ---
             $perdaAculumada = 0;
             $areaAcumulada = 0;
             if ($sqlPerdaTalhaoMedia) {
@@ -124,10 +146,12 @@
             
             $mediaPonderadaTalhao = ($areaAcumulada > 0) ? ($perdaAculumada/$areaAcumulada) : 0;
             
+            // --- Popula Globais ---
             $listaMaq[$idPropEncoded] = $listaMaqUni;
             $listaTal[$idPropEncoded] = $listaTalUni;
             $listaPerdaPropriedade[$idPropEncoded] = base64_encode(number_format($mediaPonderadaTalhao, 2, ',', '.'));
             
+            // Adiciona aos objetos (apenas se tiver dados, mas mantém estrutura segura)
             if(!empty($listaMaqPerda)){
                 $gra_maq_perda->$idPropEncoded = $listaMaqPerda;
             }
@@ -136,8 +160,9 @@
             }
         }
         
+        // 6. ENVIO DA RESPOSTA
         $envio = array(
-            'response' => 'success', 
+            'response' => 'success', // Flag de sucesso para controle
             'listPro' => $lisPro,
             'propriedade' => $listaPro,
             'talhao' => $listaTal, 
@@ -151,7 +176,8 @@
         echo json_encode($envio);
 
     } catch (Exception $e) {
-        http_response_code(200);
+        // CATCH-ALL: Qualquer erro (Banco, Lógica, PHP) cai aqui e retorna JSON válido
+        http_response_code(200); // Retorna 200 pro Kodular conseguir ler a mensagem de erro
         echo json_encode(array(
             'response' => 'error', 
             'msg' => 'Erro no Servidor: ' . $e->getMessage()
