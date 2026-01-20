@@ -42,14 +42,14 @@
         $tipo = $sqlBuscaTipo->fetch(PDO::FETCH_ASSOC);
         
         if (empty($tipo['tipo'])) { // Tipo Externo
-            $sqlPropriedades = $conn->query("SELECT Propriedades.id, Propriedades.nome FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.status = 1 AND relacao_usuario_propriedade.id_usuario = '$idUsuario' AND Propriedades.status = 1");
+            $sqlPropriedades = $conn->query("SELECT propriedades.id, propriedades.nome FROM propriedades INNER JOIN relacao_usuario_propriedade ON Propriedades.id = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.status = 1 AND relacao_usuario_propriedade.id_usuario = '$idUsuario' AND propriedades.status = 1");
         } else { // Tipo Copasul
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
         
         // 3. BUSCA DA SAFRA (CRÍTICO: ONDE O ERRO ACONTECIA)
         $dataCorte = '2022-01-12';
-        $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.Descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
+        $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
         
         if (!$sqlUltimaSafra) {
             throw new Exception("Erro ao consultar safra: " . print_r($conn->errorInfo(), true));
@@ -64,7 +64,7 @@
         }
 
         $safra = $ultimaSafra['id'];
-        $safraDesc = $ultimaSafra['Descricao'];
+        $safraDesc = $ultimaSafra['descricao'];
         
         // Verifica se veio a cultura para montar o nome da tabela
         if (empty($ultimaSafra['cultura'])) {
