@@ -95,7 +95,7 @@
             $sqlMaquina = $conn->query("SELECT id, nome, modelo FROM maquina WHERE id_propriedade = '$idPropriedade' AND status = 1");
             $sqlTalhao = $conn->query("SELECT id, nome FROM talhao WHERE id_propriedade = '$idPropriedade' AND status = 1");
             
-            // Queries de Perdas (Verifica se tabela existe via Try/Catch global se der erro SQL)
+            // Queries de Perdas
             $sqlPerdaTalhao = $conn->query("SELECT * FROM (SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC LIMIT 5) as A INNER JOIN Talhao ON A.id_talhao = Talhao.id");
             
             $sqlPerdaMaquina = $conn->query("SELECT A.MediaMaquina, Maquina.nome, Maquina.modelo FROM (SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$idPropriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina ORDER BY MediaMaquina DESC LIMIT 5) as A INNER JOIN Maquina ON A.id_maquina = Maquina.id");
@@ -122,7 +122,7 @@
             $listaMaqPerda = [];
             if ($sqlPerdaMaquina) {
                 while($listPerMaq = $sqlPerdaMaquina->fetch(PDO::FETCH_ASSOC)){
-                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['MediaMaquina']);
+                    $listaMaqPerda[base64_encode($listPerMaq['nome'])] = base64_encode($listPerMaq['mediamaquina']);
                 }
             }
 
@@ -151,7 +151,6 @@
             $listaTal[$idPropEncoded] = $listaTalUni;
             $listaPerdaPropriedade[$idPropEncoded] = base64_encode(number_format($mediaPonderadaTalhao, 2, ',', '.'));
             
-            // Adiciona aos objetos (apenas se tiver dados, mas mantém estrutura segura)
             if(!empty($listaMaqPerda)){
                 $gra_maq_perda->$idPropEncoded = $listaMaqPerda;
             }
@@ -162,7 +161,7 @@
         
         // 6. ENVIO DA RESPOSTA
         $envio = array(
-            'response' => 'success', // Flag de sucesso para controle
+            'response' => 'success',
             'listPro' => $lisPro,
             'propriedade' => $listaPro,
             'talhao' => $listaTal, 
@@ -176,8 +175,7 @@
         echo json_encode($envio);
 
     } catch (Exception $e) {
-        // CATCH-ALL: Qualquer erro (Banco, Lógica, PHP) cai aqui e retorna JSON válido
-        http_response_code(200); // Retorna 200 pro Kodular conseguir ler a mensagem de erro
+        http_response_code(200);
         echo json_encode(array(
             'response' => 'error', 
             'msg' => 'Erro no Servidor: ' . $e->getMessage()
