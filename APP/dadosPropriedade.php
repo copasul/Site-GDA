@@ -48,7 +48,7 @@
         }
         
         // 3. BUSCA DA SAFRA 
-        $dataCorte = date('Y-m-d');
+        $dataCorte = '2022-01-12'; //$dataCorte = date('Y-m-d');
         $sqlUltimaSafra = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 1");
         
         if (!$sqlUltimaSafra) {
