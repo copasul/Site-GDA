@@ -46,15 +46,11 @@
         } else { // Tipo Copasul
             $sqlPropriedades = $conn->query("SELECT id, nome FROM propriedades WHERE status = 1");
         }
-    
-/////////////////////////////////////
-
-/////////////////////////////////////
 
         // 3. BUSCA DA SAFRA 
         $dataCorte = date('Y-m-d'); 
         
-        // Traz as 10 últimas safras para garantir que acharemos alguma com dados
+        // Busca as 10 últimas safras
         $sqlBuscaSafras = $conn->query("SELECT safra.id, safra.descricao, culturas.cultura FROM safra LEFT JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.data_inicio < date('$dataCorte') ORDER BY safra.data_fim DESC LIMIT 10");
         
         if (!$sqlBuscaSafras) {
@@ -62,27 +58,23 @@
         }
 
         $ultimaSafra = null;
-        $safraComDadosEncontrada = false;
 
-        // LOOP DE VERIFICAÇÃO: Testa uma por uma até achar uma com dados
+        // LOOP: Testa uma por uma até achar uma com dados
         while ($candidata = $sqlBuscaSafras->fetch(PDO::FETCH_ASSOC)) {
             
-            // 1. Resolve o nome da Cultura (Maiúscula/Minúscula)
-            $nomeCultura = !empty($candidata['cultura']) ? $candidata['cultura'] : 
-                          (!empty($candidata['Cultura']) ? $candidata['Cultura'] : "");
+            // SEM VERIFICAÇÃO: Assume que a coluna se chama 'cultura' (minúsculo)
+            $nomeCultura = $candidata['cultura'];
             
-            if (empty($nomeCultura)) continue; // Se não tem cultura, essa safra é inútil, pula pra próxima
+            if (empty($nomeCultura)) continue; 
 
-            // 2. Monta o nome da tabela
             $tabelaTeste = 'dados_' . strtolower($nomeCultura);
 
+            // Verifica se tem dados nessa tabela
             $testeDados = $conn->query("SELECT id FROM $tabelaTeste WHERE id_safra = '{$candidata['id']}' LIMIT 1");
 
-            // Se achou pelo menos 1 registro
             if ($testeDados && $testeDados->rowCount() > 0) {
                 $ultimaSafra = $candidata;
-                $safraComDadosEncontrada = true;
-                break; // Para o loop
+                break;
             }
         }
 
@@ -90,15 +82,7 @@
             $sqlBuscaSafras->execute(); 
             $ultimaSafra = $sqlBuscaSafras->fetch(PDO::FETCH_ASSOC);
         }
-
-
-//////////////////////////////////////
-
-
-//////////////////////////////////////
-
-
-        // Se não encontrar safra, para aqui antes de quebrar o código
+        //
         if (!$ultimaSafra) {
             echo json_encode(array('response' => 'error', 'msg' => 'Nenhuma safra encontrada para o período.'));
             exit;
@@ -107,7 +91,6 @@
         $safra = $ultimaSafra['id'];
         $safraDesc = $ultimaSafra['descricao'];
         
-        // Verifica se veio a cultura para montar o nome da tabela
         if (empty($ultimaSafra['cultura'])) {
             throw new Exception("Safra encontrada, mas sem cultura definida.");
         }
@@ -115,12 +98,12 @@
 
         // 4. INICIALIZAÇÃO DE ARRAYS (PARA EVITAR WARNINGS)
         $listaPro = [];
-        $lisPro = (object)[]; // Objeto para JSON {}
+        $lisPro = (object)[];
         $listaMaq = [];
         $listaTal = [];
         $listaPerdaPropriedade = [];
-        $gra_maq_perda = (object)[]; // Objeto para JSON {}
-        $gra_ta_perda = (object)[];  // Objeto para JSON {}
+        $gra_maq_perda = (object)[];
+        $gra_ta_perda = (object)[];
 
         // 5. LOOP DE PROPRIEDADES
         while ($listPropriedade = $sqlPropriedades->fetch(PDO::FETCH_ASSOC)) {
