@@ -75,16 +75,17 @@
                                     </tfoot>
                                     <tbody>
                                         <?php
-                                             while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
+                                        while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
                                         ?>
                                         <tr>
                                             <td onclick="location.href='detalhes-safra.php?id=<?php echo base64_encode($dados['id'])?>'"><?php echo $dados['descricao']?></td>
                                             <td><?php echo $dados['cultura']?></td>
-                                            <td><?php echo date_format(date_create($dados['data_inicio']), 'd/m/Y')?></td>
-                                            <td><?php echo date_format(date_create($dados['data_fim']), 'd/m/Y')?></td>
+                                            
+                                            <td><?php echo date('d/m/Y', strtotime($dados['data_inicio']))?></td>
+                                            <td><?php echo date('d/m/Y', strtotime($dados['data_fim']))?></td>
                                         </tr>
                                         <?php
-                                             }
+                                        }
                                         ?>
                                     </tbody>
                                 </table>
