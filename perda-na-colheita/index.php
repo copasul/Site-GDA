@@ -88,9 +88,15 @@
                 $mediaPonderadaTalhao = 0;
             }
 
+            $sqlCountMaquinas = $conn->query("
+                SELECT COUNT(DISTINCT id_maquina) AS count
+                FROM $nomeTabela
+                WHERE id_propriedade = '$propriedade'
+                AND id_safra = '$safra'
+            ");
+
             $countMaq = $sqlCountMaquinas->fetch(PDO::FETCH_ASSOC);
             
-
             $sqlMediaRegiao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_safra = '$safra' AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
             $n = 0;
             $perdaAculumadaRegiao= 0;
