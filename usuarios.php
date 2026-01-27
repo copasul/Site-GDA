@@ -2,11 +2,16 @@
     include __DIR__ . '/backend/conexao.php';
     include __DIR__ . '/backend/verificaLog.php';
 
-    $sqlBusca = $conn->query("SELECT * FROM usuarios WHERE status = 1");
-
-
-
+$sqlBusca = $conn->query("
+        SELECT 
+            u.*, 
+            p.tipo as nome_permissao
+        FROM usuarios u
+        LEFT JOIN permissoes p ON u.tipo = p.id
+        WHERE u.status = 1
+    ");
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-br">
     <head>
@@ -69,26 +74,24 @@
                                     </tfoot>
                                     <tbody>
                                         <?php
-                                            while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
-                                                $idPermissao = $dados['tipo'];
-                                                if($idPermissao == NULL){
-                                                    $tipo = "Externo";
-                                                }else{
-                                                    $sqlBusca2 = $conn->query("SELECT * FROM permissoes WHERE id = '$idPermissao'");
-                                                    $dados2 = $sqlBusca2->fetch(PDO::FETCH_ASSOC);
-                                                    $tipo = $dados2['tipo'];
-                                                }
+                                        while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
+                                            
+                                            // Lógica Simplificada:
+                                            // O banco já tentou buscar o nome. Se veio vazio (NULL), assumimos "Externo".
+                                            // O operador '??' faz exatamente isso: "Use o valor da esquerda, se não existir, use o da direita".
+                                            $tipo = $dados['nome_permissao'] ?? 'Externo';
                                         ?>
                                         <tr>
-                                            <td onclick="location.href='detalhes-usuario.php?id=<?php echo base64_encode($dados['id'])?>'"><?php echo $dados['nome'];?></td>
+                                            <td style="cursor: pointer;" onclick="location.href='detalhes-usuario.php?id=<?php echo base64_encode($dados['id'])?>'">
+                                                <?php echo $dados['nome'];?>
+                                            </td>
+                                            
                                             <td><?php echo $dados['email'];?></td>
                                             <td><?php echo $dados['telefone'];?></td>
-                                            <td>
-                                                    
-                                                <?php echo $tipo;?></td>
+                                            <td><?php echo $tipo;?></td>
                                         </tr>
                                         <?php 
-                                            }
+                                        }
                                         ?>
                                     </tbody>
                                 </table>
