@@ -43,6 +43,10 @@
 
 
         $nomeTabela = 'dados_'.strtolower($ListaSafra['cultura']);
+
+        // Verifica se a cultura é soja para controlar a exibição da coluna 30m
+        $eSoja = (strtolower($ListaSafra['cultura']) == 'soja');
+
         $sqlBuscaDados = $conn->query("SELECT count(*) as count FROM $nomeTabela WHERE id_safra = $safra AND id_propriedade = $propriedade");
         $buscarDados = $sqlBuscaDados->fetch(PDO::FETCH_ASSOC);
         if($buscarDados['count'] > 0){
@@ -593,13 +597,17 @@
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered" id="dataTable3" width="100%" cellspacing="0">
-                                            <thead>
-                                                <tr>
+                                                <thead>
+                                                    <tr>
                                                         <th>Data</th>
                                                         <th>Talhão</th>
                                                         <th>Máquina</th>
                                                         <th>Perda 2m</th>
-                                                        <th>Perda 30m</th>
+                                                        
+                                                        <?php if(!$eSoja): // Só mostra se NÃO for soja ?>
+                                                            <th>Perda 30m</th>
+                                                        <?php endif; ?>
+
                                                         <th>Perda Total</th>
                                                         <th>Observação</th>
                                                         <th>Usuário</th>
@@ -611,7 +619,11 @@
                                                         <th>Talhão</th>
                                                         <th>Máquina</th>
                                                         <th>Perda 2m</th>
-                                                        <th>Perda 30m</th>
+
+                                                        <?php if(!$eSoja): ?>
+                                                            <th>Perda 30m</th>
+                                                        <?php endif; ?>
+
                                                         <th>Perda Total</th>
                                                         <th>Observação</th>
                                                         <th>Usuário</th>
@@ -620,45 +632,59 @@
                                                 <tbody>
                                                     <?php
                                                     $n = 0;
-                                                         $sqlBuscaRegistro = $conn->query("SELECT * FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra");
-                                                         while($registros = $sqlBuscaRegistro->fetch(PDO::FETCH_ASSOC)){
-                                                            $idTalhao = $registros['id_talhao'];
-                                                            $idMaquina = $registros['id_maquina'];
-                                                            $idUsuario = $registros['id_usuario'];
-                                                            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                                                            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
+                                                    
+                                                    // Define se é soja baseado no nome da tabela para controlar a exibição
+                                                    // (Assume que $nomeTabela foi definido no início do arquivo como 'dados_soja' ou 'dados_milho')
+                                                    $eSoja = (strpos($nomeTabela, 'soja') !== false);
 
-                                                            $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina' ");
-                                                            $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
+                                                    $sqlBuscaRegistro = $conn->query("SELECT * FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra");
+                                                    
+                                                    while($registros = $sqlBuscaRegistro->fetch(PDO::FETCH_ASSOC)){
+                                                        $idTalhao = $registros['id_talhao'];
+                                                        $idMaquina = $registros['id_maquina'];
+                                                        $idUsuario = $registros['id_usuario'];
+                                                        
+                                                        $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
+                                                        $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
 
-                                                            $sqlBuscaInfoUsuario = $conn->query("SELECT * FROM Usuarios WHERE id = '$idUsuario' ");
-                                                            $infoUsuario = $sqlBuscaInfoUsuario->fetch(PDO::FETCH_ASSOC);
+                                                        $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina' ");
+                                                        $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
 
-                                                            $listaRegistros[$n]['data'] = date('d/m/Y', strtotime($registros['data_hora']));
-                                                            $listaRegistros[$n]['talhao'] = $infoTalhao['nome'];
-                                                            $listaRegistros[$n]['maquina'] = $infoMaquina['nome']." - ".$infoMaquina['modelo'];
-                                                            $listaRegistros[$n]['perda'] = number_format($registros['perda_total'], 2,',', '.');
-                                                            $listaRegistros[$n]['obs'] = $registros['obs'];
-                                                            $listaRegistros[$n]['usuario'] = $infoUsuario['nome'];
-                                                             
-                                                         
+                                                        $sqlBuscaInfoUsuario = $conn->query("SELECT * FROM Usuarios WHERE id = '$idUsuario' ");
+                                                        $infoUsuario = $sqlBuscaInfoUsuario->fetch(PDO::FETCH_ASSOC);
+
+                                                        // Previne o erro "Undefined array key" verificando se a chave existe antes de usar
+                                                        $perda30mValor = isset($registros['perda_30m']) ? $registros['perda_30m'] : 0;
+
+                                                        // Montagem do array (Mantive seu código original caso use em outro lugar, mas ajustei a perda 30m)
+                                                        $listaRegistros[$n]['data'] = date('d/m/Y', strtotime($registros['data_hora']));
+                                                        $listaRegistros[$n]['talhao'] = $infoTalhao['nome'];
+                                                        $listaRegistros[$n]['maquina'] = $infoMaquina['nome']." - ".$infoMaquina['modelo'];
+                                                        $listaRegistros[$n]['perda'] = number_format($registros['perda_total'], 2,',', '.');
+                                                        $listaRegistros[$n]['obs'] = $registros['obs'];
+                                                        $listaRegistros[$n]['usuario'] = $infoUsuario['nome'];
                                                     ?>
                                                     <tr>
                                                         <td><?php echo date('d/m/Y', strtotime($registros['data_hora']))?></td>
                                                         <td><?php echo $infoTalhao['nome'];?></td>
                                                         <td><?php echo $infoMaquina['nome']." - ".$infoMaquina['modelo']?></td>
                                                         <td><?php echo number_format($registros['perda_2m'], 2,',', '.')?> sc/ha</td>
-                                                        <td><?php echo number_format($registros['perda_30m'], 2,',', '.')?> sc/ha</td>
+                                                        
+                                                        <?php 
+                                                        // SÓ MOSTRA A COLUNA DE 30M SE NÃO FOR SOJA
+                                                        if(!$eSoja): 
+                                                        ?>
+                                                            <td><?php echo number_format($perda30mValor, 2,',', '.')?> sc/ha</td>
+                                                        <?php endif; ?>
+
                                                         <td><?php echo number_format($registros['perda_total'], 2,',', '.')?> sc/ha</td>
                                                         <td><?php echo $registros['obs'];?></td>
                                                         <td><?php echo $infoUsuario['nome'];?></td>
                                                     </tr>
                                                     <?php
                                                         $n += 1;
-                                                        }
+                                                    }
                                                     ?>
-                                                    
-                                                    
                                                 </tbody>
                                             </table>
                                     </div>

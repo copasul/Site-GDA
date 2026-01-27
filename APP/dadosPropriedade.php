@@ -62,7 +62,6 @@
         // LOOP: Testa uma por uma até achar uma com dados
         while ($candidata = $sqlBuscaSafras->fetch(PDO::FETCH_ASSOC)) {
             
-            // SEM VERIFICAÇÃO: Assume que a coluna se chama 'cultura' (minúsculo)
             $nomeCultura = $candidata['cultura'];
             
             if (empty($nomeCultura)) continue; 
