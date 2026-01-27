@@ -298,8 +298,16 @@
                                             <tbody>
                                                 <?php
                                                 $n = 0;
-                                                $sqlBuscaMaquina = $conn->query("SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND perda_total > 0 GROUP BY id_maquina");
-                                                    while($maquina = $sqlBuscaMaquina->fetch(PDO::FETCH_ASSOC)){
+                                                        $sqlBuscaMaquina = $conn->query("
+                                                            SELECT id_maquina, AVG(perda_total) AS MediaMaquina 
+                                                            FROM $nomeTabela 
+                                                            WHERE id_propriedade = '$propriedade' 
+                                                            AND id_safra = '$safra' 
+                                                            AND perda_total > 0 
+                                                            GROUP BY id_maquina 
+                                                            ORDER BY MediaMaquina ASC
+                                                        ");   
+                                                        while($maquina = $sqlBuscaMaquina->fetch(PDO::FETCH_ASSOC)){
                                                         $idMaquina = $maquina['id_maquina'];
                                                         $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina'");
                                                         $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
