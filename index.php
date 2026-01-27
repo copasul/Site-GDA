@@ -76,6 +76,7 @@
 
     $sqlRanking = "
         SELECT 
+            p.id,  -- Adicionei o ID aqui caso o gráfico precise
             p.nome as nome_fazenda,
             SUM(sub.media_talhao * t.area) / NULLIF(SUM(t.area), 0) as media_ponderada
         FROM (
@@ -95,9 +96,20 @@
     $stmtRanking = $conn->query($sqlRanking);
     $listaRankingFazendas = $stmtRanking->fetchAll(PDO::FETCH_ASSOC);
 
-    // Lista para o Select do topo
-    $sqlBuscaListaSafras = $conn->query("SELECT * FROM safra ORDER BY data_fim DESC");
+    $listaPerdasMediaPropriedade = [];
+    $listaPerdasMediaPro = [];
+    $n = 0;
 
+    foreach($listaRankingFazendas as $fazenda){
+        $listaPerdasMediaPropriedade[$n]['id']    = $fazenda['id'];
+        $listaPerdasMediaPropriedade[$n]['nome']  = $fazenda['nome_fazenda'];
+        $listaPerdasMediaPropriedade[$n]['media'] = $fazenda['media_ponderada'];
+        $listaPerdasMediaPro[] = $fazenda['media_ponderada'];
+        
+        $n++;
+    }
+
+    $sqlBuscaListaSafras = $conn->query("SELECT * FROM safra ORDER BY data_fim DESC");
 ?>
 
 <!DOCTYPE html>
