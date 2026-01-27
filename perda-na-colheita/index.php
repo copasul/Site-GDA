@@ -91,13 +91,20 @@
             $n = 0;
             $perdaAculumadaRegiao= 0;
             $areaAcumuladaRegiao=0;
+
             while($regiao = $sqlMediaRegiao->fetch(PDO::FETCH_ASSOC)){
                 $idTalhao = $regiao['id_talhao'];
                 $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
                 $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-                $perdaAculumadaRegiao += ($regiao['medidatalhao'] * $infoTalhao['area']);
-                $areaAcumuladaRegiao += $infoTalhao['area'];
-                $n += 1;
+                
+                // --- INÍCIO DA CORREÇÃO ---
+                // Verifica se o talhão foi encontrado antes de tentar ler a área
+                if($infoTalhao){ 
+                    $perdaAculumadaRegiao += ($regiao['medidatalhao'] * $infoTalhao['area']);
+                    $areaAcumuladaRegiao += $infoTalhao['area'];
+                    $n += 1;
+                }
+                // --- FIM DA CORREÇÃO ---
             }
 
 
