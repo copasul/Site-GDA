@@ -2,134 +2,104 @@
     include __DIR__ . '/backend/conexao.php';
     include __DIR__ . '/backend/verificaLog.php';
 
-    
     $dataAtual = date('Y-m-d');
+    
+    // Lógica de Seleção de Safra
     if(empty($_GET['safra'])){
         $sqlUltimaSafra = $conn->query("SELECT * FROM safra WHERE data_inicio < date('$dataAtual') ORDER BY data_fim DESC LIMIT 1");
         $ultimaSafra = $sqlUltimaSafra->fetch(PDO::FETCH_ASSOC);
         header("Location: index.php?safra=".base64_encode($ultimaSafra['id']));
-        $safra = $ultimaSafra['id'];
+        exit; 
     }else{
         $safra = base64_decode($_GET['safra']);
     }
     
+    // Dados Básicos da Safra
     $sqlBuscaSafra = $conn->query("SELECT safra.id, safra.id_cultura, culturas.id, culturas.cultura FROM safra INNER JOIN culturas ON safra.id_cultura = culturas.id WHERE safra.id = $safra");
     $ListaSafra = $sqlBuscaSafra->fetch(PDO::FETCH_ASSOC);
     $nomeTabela = 'dados_'.strtolower($ListaSafra['cultura']);
 
+    // Variáveis iniciais
+    $mediaPonderadaTalhao = 0;
+    $countPro = ['num' => 0];
+    $sumArea = ['area' => 0];
+    $countMaq = ['num' => 0];
+    $listaRankingFazendas = []; 
 
-    if(!empty($User['tipo'])){
-        $sqlCountFazendas = $conn->query("SELECT COUNT(DISTINCT id_propriedade) AS num
-                                 FROM $nomeTabela
-                                 WHERE id_safra = $safra AND id_propriedade <> 54");
-        $countPro = $sqlCountFazendas->fetch(PDO::FETCH_ASSOC);
+    $filtroUsuario = "";
+    if(empty($User['tipo'])){
+        $filtroUsuario = " AND t.id_propriedade IN (SELECT id_propriedade FROM relacao_usuario_propriedade WHERE id_usuario = {$User['id']} AND status = 1) ";
+    }
 
-        $sqlSumArea = $conn->query("
-    SELECT COALESCE(SUM(t.area),0) AS area
-    FROM (
-        SELECT DISTINCT id_talhao
-        FROM $nomeTabela
-        WHERE id_safra = $safra AND id_propriedade <> 54
-    ) a
-    JOIN talhao t ON t.id = a.id_talhao
-");
-        $sumArea = $sqlSumArea->fetch(PDO::FETCH_ASSOC);
+    // Contagem de Fazendas
+    $countPro = $conn->query("SELECT COUNT(DISTINCT id_propriedade) AS num FROM $nomeTabela t WHERE id_safra = $safra AND id_propriedade <> 54 $filtroUsuario")->fetch(PDO::FETCH_ASSOC);
+    
+    // Contagem de Máquinas
+    $countMaq = $conn->query("SELECT COUNT(DISTINCT id_maquina) AS num FROM $nomeTabela t WHERE id_safra = $safra AND id_propriedade <> 54 $filtroUsuario")->fetch(PDO::FETCH_ASSOC);
 
-        $sqlCountMaquinas = $conn->query("SELECT COUNT(DISTINCT id_maquina) AS num
-                                 FROM $nomeTabela
-                                 WHERE id_safra = $safra AND id_propriedade <> 54");
-        $countMaq = $sqlCountMaquinas->fetch(PDO::FETCH_ASSOC);
+    // Soma de Área
+    $sqlSumArea = $conn->query("
+        SELECT COALESCE(SUM(tal.area), 0) as area
+        FROM (SELECT DISTINCT id_talhao FROM $nomeTabela WHERE id_safra = $safra) d
+        JOIN talhao tal ON d.id_talhao = tal.id
+        WHERE tal.id_propriedade <> 54 
+        $filtroUsuario
+    ");
+    $sumArea = $sqlSumArea->fetch(PDO::FETCH_ASSOC);
 
-        $sqlBuscaTalhao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_safra = '$safra' AND perda_total > 0 AND id_propriedade != 54 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
-        $n = 0;
-        $perdaAculumada= 0;
-        $areaAcumulada=0;
-        while($talhao = $sqlBuscaTalhao->fetch(PDO::FETCH_ASSOC)){
-            $idTalhao = $talhao['id_talhao'];
-            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-            $listaTalhao[$n]['id'] = $idTalhao;
-            $listaTalhao[$n]['nome'] = $infoTalhao['nome'];
-            $listaTalhao[$n]['area'] = $infoTalhao['area'];
-            $listaTalhao[$n]['medidatalhao'] = $talhao['medidatalhao'];
-            $listaTalhao[$n]['perdaTotal'] = ($talhao['medidatalhao'] * $infoTalhao['area']); 
-            $perdaAculumada += ($talhao['medidatalhao'] * $infoTalhao['area']);
-            $areaAcumulada += $infoTalhao['area'];
-            $listaPerdasMedia[] = $talhao['medidatalhao'];
-            $n += 1;
-        }
-
-
-        //Calculo da Média Ponderada da perda
-        if($areaAcumulada>0){
-            $mediaPonderadaTalhao = $perdaAculumada/$areaAcumulada;
-        }else{
-            $mediaPonderadaTalhao = 0;
-        }
-    }else{
-        $idUser = $User['id'];
-        $sqlCountFazendas = $conn->query("
-    SELECT COUNT(DISTINCT t.id_propriedade) AS num
-    FROM $nomeTabela t
-    JOIN relacao_usuario_propriedade r
-      ON t.id_propriedade = r.id_propriedade
-    WHERE t.id_safra = $safra
-      AND r.id_usuario = $idUser
-      AND r.status = 1
-");
-        $countPro = $sqlCountFazendas->fetch(PDO::FETCH_ASSOC);
-
-        $sqlSumArea = $conn->query("SELECT SUM(b.area) as area FROM (SELECT * FROM (SELECT $nomeTabela.id_safra, $nomeTabela.id_talhao FROM $nomeTabela WHERE $nomeTabela.id_safra = $safra GROUP BY $nomeTabela.id_talhao) As a INNER JOIN Talhao ON a.id_talhao = Talhao.id) as b INNER JOIN relacao_usuario_propriedade ON b.id_propriedade = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.id_usuario = $idUser AND relacao_usuario_propriedade.status= 1;");
-        $sumArea = $sqlSumArea->fetch(PDO::FETCH_ASSOC);
-
-        $sqlCountMaquinas = $conn->query("
-    SELECT COUNT(DISTINCT t.id_maquina) AS num
-    FROM $nomeTabela t
-    JOIN relacao_usuario_propriedade r
-      ON t.id_propriedade = r.id_propriedade
-    WHERE t.id_safra = $safra
-      AND r.id_usuario = $idUser
-      AND r.status = 1
-");
-        $countMaq = $sqlCountMaquinas->fetch(PDO::FETCH_ASSOC);
-
-        $sqlBuscaTalhao = $conn->query("SELECT * FROM (SELECT * FROM (SELECT $nomeTabela.id_safra, $nomeTabela.id_talhao, AVG($nomeTabela.perda_total) as medidatalhao FROM $nomeTabela WHERE $nomeTabela.id_safra = $safra AND $nomeTabela.perda_total > 0 GROUP BY $nomeTabela.id_talhao) As a INNER JOIN Talhao ON a.id_talhao = Talhao.id) as b INNER JOIN relacao_usuario_propriedade ON b.id_propriedade = relacao_usuario_propriedade.id_propriedade WHERE relacao_usuario_propriedade.id_usuario = $idUser AND relacao_usuario_propriedade.status= 1;");
-        $n = 0;
-        $perdaAculumada= 0;
-        $areaAcumulada=0;
-        while($talhao = $sqlBuscaTalhao->fetch(PDO::FETCH_ASSOC)){
-            $idTalhao = $talhao['id_talhao'];
-            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-            $listaTalhao[$n]['id'] = $idTalhao;
-            $listaTalhao[$n]['nome'] = $infoTalhao['nome'];
-            $listaTalhao[$n]['area'] = $infoTalhao['area'];
-            $listaTalhao[$n]['medidatalhao'] = $talhao['medidatalhao'];
-            $listaTalhao[$n]['perdaTotal'] = ($talhao['medidatalhao'] * $infoTalhao['area']); 
-            $perdaAculumada += ($talhao['medidatalhao'] * $infoTalhao['area']);
-            $areaAcumulada += $infoTalhao['area'];
-            $listaPerdasMedia[] = $talhao['medidatalhao'];
-            $n += 1;
-        }
-
-
-        //Calculo da Média Ponderada da perda
-        if($areaAcumulada>0){
-            $mediaPonderadaTalhao = $perdaAculumada/$areaAcumulada;
-        }else{
-            $mediaPonderadaTalhao = 0;
-        }
+    $sqlGeral = "
+        SELECT 
+            AVG(d.perda_total) as media_talhao,
+            t.area
+        FROM $nomeTabela d
+        JOIN talhao t ON d.id_talhao = t.id
+        WHERE d.id_safra = $safra 
+          AND d.perda_total > 0 
+          AND d.id_propriedade <> 54
+          $filtroUsuario
+        GROUP BY d.id_talhao, t.area
+    ";
+    
+    $stmtGeral = $conn->query($sqlGeral);
+    
+    $acumuladoPonderado = 0;
+    $acumuladoArea = 0;
+    
+    while($row = $stmtGeral->fetch(PDO::FETCH_ASSOC)){
+        $acumuladoPonderado += ($row['media_talhao'] * $row['area']);
+        $acumuladoArea += $row['area'];
     }
     
+    if($acumuladoArea > 0){
+        $mediaPonderadaTalhao = $acumuladoPonderado / $acumuladoArea;
+    }
 
+    $sqlRanking = "
+        SELECT 
+            p.nome as nome_fazenda,
+            SUM(sub.media_talhao * t.area) / NULLIF(SUM(t.area), 0) as media_ponderada
+        FROM (
+            SELECT id_talhao, AVG(perda_total) as media_talhao
+            FROM $nomeTabela
+            WHERE id_safra = $safra AND perda_total > 0
+            GROUP BY id_talhao
+        ) sub
+        JOIN talhao t ON sub.id_talhao = t.id
+        JOIN propriedades p ON t.id_propriedade = p.id
+        WHERE p.id <> 54
+        $filtroUsuario
+        GROUP BY p.id, p.nome
+        ORDER BY media_ponderada ASC
+    ";
+    
+    $stmtRanking = $conn->query($sqlRanking);
+    $listaRankingFazendas = $stmtRanking->fetchAll(PDO::FETCH_ASSOC);
 
-
+    // Lista para o Select do topo
     $sqlBuscaListaSafras = $conn->query("SELECT * FROM safra ORDER BY data_fim DESC");
 
-
-   
-
 ?>
+
 <!DOCTYPE html>
 <html lang="pt-br">
     <head>
@@ -278,7 +248,6 @@
                                                 <tr>
                                                     <th>Fazenda</th>
                                                     <th>Perda Média</th>
-                                                    
                                                 </tr>
                                             </thead>
                                             <tfoot>
@@ -289,58 +258,15 @@
                                             </tfoot>
                                             <tbody>
                                                 <?php
-                                                   $n = 0;
-                                                   if(!empty($User['tipo'])){
-                                                        $sqlComparativoFazendas = $conn->query("
-  SELECT DISTINCT id_propriedade
-  FROM $nomeTabela
-  WHERE id_safra = $safra AND id_propriedade <> 54
-");
-
-                                                   }else{
-                                                        $sqlComparativoFazendas = $conn->query("
-  SELECT DISTINCT t.id_propriedade
-  FROM $nomeTabela t
-  JOIN relacao_usuario_propriedade r ON t.id_propriedade = r.id_propriedade
-  WHERE t.id_safra = $safra
-    AND r.id_usuario = $idUser
-    AND r.status = 1
-");
-
-                                                    }
-                                                   while($listaFazendas = $sqlComparativoFazendas->fetch(PDO::FETCH_ASSOC)){
-                                                        $idPropriedade = $listaFazendas['id_propriedade'];
-
-                                                        $sqlBuscaFazenda = $conn->query("SELECT * FROM Propriedades WHERE id = $idPropriedade");
-                                                        $fazenda = $sqlBuscaFazenda->fetch(PDO::FETCH_ASSOC);
-
-                                                        $sqlCalculamedidatalhao = $conn->query("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM $nomeTabela WHERE id_safra = '$safra' AND id_propriedade = $idPropriedade AND perda_total > 0 GROUP BY id_talhao ORDER BY medidatalhao DESC;");
-                                                        $perdaAculumada = 0;
-                                                        $areaAcumulada =0;
-                                                        while($MediaPorTalhao = $sqlCalculamedidatalhao->fetch(PDO::FETCH_ASSOC)){
-
-                                                            $idTalhao = $MediaPorTalhao['id_talhao'];
-                                                            $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                                                            $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-                                                            $perdaAculumada += ($MediaPorTalhao['medidatalhao'] * $infoTalhao['area']);
-                                                            $areaAcumulada += $infoTalhao['area'];
- 
-                                                        }
-                                                        
-                                                        $listaPerdasMediaPropriedade[$n]['id'] = $idPropriedade;
-                                                        $listaPerdasMediaPropriedade[$n]['nome'] = $fazenda['nome'];
-                                                        $listaPerdasMediaPropriedade[$n]['media'] = ($perdaAculumada/$areaAcumulada);
-                                                        $listaPerdasMediaPro[] = ($perdaAculumada/$areaAcumulada);
-                                                        $n += 1;
+                                                // Loop simples percorrendo o array já pronto
+                                                foreach($listaRankingFazendas as $fazenda){
                                                 ?>
                                                 <tr>
-                                                    <td><?php echo $fazenda['nome']?></td>
-                                                    <td><?php echo number_format($perdaAculumada/$areaAcumulada, 2, ',', '.')?> sc/ha</td>
-                                                   
+                                                    <td><?php echo $fazenda['nome_fazenda']; ?></td>
+                                                    <td><?php echo number_format($fazenda['media_ponderada'], 2, ',', '.'); ?> sc/ha</td>
                                                 </tr>
                                                 <?php
-                                               
-                                                    }
+                                                }
                                                 ?>
                                             </tbody>
                                         </table>
