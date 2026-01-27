@@ -632,54 +632,50 @@
                                                 <tbody>
                                                     <?php
                                                     $n = 0;
-                                                    
-                                                    // Define se é soja baseado no nome da tabela para controlar a exibição
-                                                    // (Assume que $nomeTabela foi definido no início do arquivo como 'dados_soja' ou 'dados_milho')
+
+                                                    $sqlBuscaRegistro = $conn->query("
+                                                        SELECT 
+                                                            d.*, 
+                                                            t.nome as nome_talhao, 
+                                                            m.nome as nome_maquina, 
+                                                            m.modelo as modelo_maquina,
+                                                            u.nome as nome_usuario
+                                                        FROM $nomeTabela d
+                                                        LEFT JOIN Talhao t ON d.id_talhao = t.id
+                                                        LEFT JOIN Maquina m ON d.id_maquina = m.id
+                                                        LEFT JOIN Usuarios u ON d.id_usuario = u.id
+                                                        WHERE d.id_propriedade = $propriedade 
+                                                        AND d.id_safra = $safra
+                                                    ");
+
+                                                    // Verifica se é soja (lógica que criamos antes)
                                                     $eSoja = (strpos($nomeTabela, 'soja') !== false);
 
-                                                    $sqlBuscaRegistro = $conn->query("SELECT * FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra");
-                                                    
                                                     while($registros = $sqlBuscaRegistro->fetch(PDO::FETCH_ASSOC)){
-                                                        $idTalhao = $registros['id_talhao'];
-                                                        $idMaquina = $registros['id_maquina'];
-                                                        $idUsuario = $registros['id_usuario'];
+                                                        // Prepara valores para evitar erros
+                                                        $perda30m = isset($registros['perda_30m']) ? $registros['perda_30m'] : 0;
                                                         
-                                                        $sqlBuscaInfoTalhao = $conn->query("SELECT * FROM Talhao WHERE id = '$idTalhao' ");
-                                                        $infoTalhao = $sqlBuscaInfoTalhao->fetch(PDO::FETCH_ASSOC);
-
-                                                        $sqlBuscaInfoMaquina = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquina' ");
-                                                        $infoMaquina = $sqlBuscaInfoMaquina->fetch(PDO::FETCH_ASSOC);
-
-                                                        $sqlBuscaInfoUsuario = $conn->query("SELECT * FROM Usuarios WHERE id = '$idUsuario' ");
-                                                        $infoUsuario = $sqlBuscaInfoUsuario->fetch(PDO::FETCH_ASSOC);
-
-                                                        // Previne o erro "Undefined array key" verificando se a chave existe antes de usar
-                                                        $perda30mValor = isset($registros['perda_30m']) ? $registros['perda_30m'] : 0;
-
-                                                        // Montagem do array (Mantive seu código original caso use em outro lugar, mas ajustei a perda 30m)
+                                                        // Dados para o JavaScript de exportação (opcional manter se vc usa)
                                                         $listaRegistros[$n]['data'] = date('d/m/Y', strtotime($registros['data_hora']));
-                                                        $listaRegistros[$n]['talhao'] = $infoTalhao['nome'];
-                                                        $listaRegistros[$n]['maquina'] = $infoMaquina['nome']." - ".$infoMaquina['modelo'];
+                                                        $listaRegistros[$n]['talhao'] = $registros['nome_talhao'];
+                                                        $listaRegistros[$n]['maquina'] = $registros['nome_maquina']." - ".$registros['modelo_maquina'];
                                                         $listaRegistros[$n]['perda'] = number_format($registros['perda_total'], 2,',', '.');
                                                         $listaRegistros[$n]['obs'] = $registros['obs'];
-                                                        $listaRegistros[$n]['usuario'] = $infoUsuario['nome'];
+                                                        $listaRegistros[$n]['usuario'] = $registros['nome_usuario'];
                                                     ?>
                                                     <tr>
                                                         <td><?php echo date('d/m/Y', strtotime($registros['data_hora']))?></td>
-                                                        <td><?php echo $infoTalhao['nome'];?></td>
-                                                        <td><?php echo $infoMaquina['nome']." - ".$infoMaquina['modelo']?></td>
+                                                        <td><?php echo $registros['nome_talhao'];?></td>
+                                                        <td><?php echo $registros['nome_maquina']." - ".$registros['modelo_maquina']?></td>
                                                         <td><?php echo number_format($registros['perda_2m'], 2,',', '.')?> sc/ha</td>
                                                         
-                                                        <?php 
-                                                        // SÓ MOSTRA A COLUNA DE 30M SE NÃO FOR SOJA
-                                                        if(!$eSoja): 
-                                                        ?>
-                                                            <td><?php echo number_format($perda30mValor, 2,',', '.')?> sc/ha</td>
+                                                        <?php if(!$eSoja): ?>
+                                                            <td><?php echo number_format($perda30m, 2,',', '.')?> sc/ha</td>
                                                         <?php endif; ?>
 
                                                         <td><?php echo number_format($registros['perda_total'], 2,',', '.')?> sc/ha</td>
                                                         <td><?php echo $registros['obs'];?></td>
-                                                        <td><?php echo $infoUsuario['nome'];?></td>
+                                                        <td><?php echo $registros['nome_usuario'];?></td>
                                                     </tr>
                                                     <?php
                                                         $n += 1;
