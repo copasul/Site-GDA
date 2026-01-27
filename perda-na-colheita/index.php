@@ -64,9 +64,9 @@
                 WHERE d.id_propriedade = '$propriedade' 
                 AND d.id_safra = '$safra' 
                 AND d.perda_total > 0 
-                GROUP BY d.id_talhao 
+                GROUP BY d.id_talhao, t.nome, t.area 
                 ORDER BY medidatalhao DESC
-            ");            
+            ");       
             $n = 0;
             $perdaAculumada= 0;
             $areaAcumulada=0;
