@@ -31,14 +31,12 @@ $stmt = $conn->prepare("
     FROM login_registro
     WHERE token = :token
       AND validade > :agora
-      AND ip = :ip
     ORDER BY id DESC
     LIMIT 1
 ");
 $stmt->execute([
     ':token' => $tokenAcess,
     ':agora' => $dataAtual,
-    ':ip'    => $ip
 ]);
 
 $buscaToken = $stmt->fetch();
