@@ -503,79 +503,105 @@
                                                 <tr>
                                                     <th>Talhao</th>
                                                     <?php
-                                                            $sqlBuscaMaquinas2 = $conn->query("SELECT id_maquina FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra AND perda_total > 0 GROUP BY id_maquina;");
-                                                            // echo ("SELECT id_talhao, AVG(perda_total) AS medidatalhao FROM dados_milho WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' GROUP BY id_talhao;");
-                                                            while($Maquinas = $sqlBuscaMaquinas2->fetch(PDO::FETCH_ASSOC)){
-                                                                $idMaquinas = $Maquinas['id_maquina'];
-                                                                $listMaquinas[] = $idMaquinas;
-                                                                $sqlBuscaInfoMaquina2 = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquinas'");
-                                                                $infoMaquina2 = $sqlBuscaInfoMaquina2->fetch(PDO::FETCH_ASSOC);
+                                                    // Inicializa arrays para garantir que estejam limpos
+                                                    $listMaquinas = [];
+                                                    $colunaComparativo = [];
 
-                                                                $colunaComparativo[] = $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];
-                                                        ?>
-                                                            <th><?php echo $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];?></th>
-                                                        <?php
-                                                             }
-                                                        ?>
+                                                    // Busca as colunas (Máquinas que trabalharam nesta safra)
+                                                    $sqlBuscaMaquinas2 = $conn->query("SELECT id_maquina FROM $nomeTabela WHERE id_propriedade = $propriedade AND id_safra = $safra AND perda_total > 0 GROUP BY id_maquina;");
+                                                    
+                                                    while($Maquinas = $sqlBuscaMaquinas2->fetch(PDO::FETCH_ASSOC)){
+                                                        $idMaquinas = $Maquinas['id_maquina'];
+                                                        $listMaquinas[] = $idMaquinas;
+                                                        
+                                                        // Busca nome da máquina para o cabeçalho
+                                                        $sqlBuscaInfoMaquina2 = $conn->query("SELECT * FROM Maquina WHERE id = '$idMaquinas'");
+                                                        $infoMaquina2 = $sqlBuscaInfoMaquina2->fetch(PDO::FETCH_ASSOC);
+                                                        
+                                                        $nomeColuna = $infoMaquina2['nome'].' - '.$infoMaquina2['modelo'];
+                                                        $colunaComparativo[] = $nomeColuna;
+                                                    ?>
+                                                        <th><?php echo $nomeColuna; ?></th>
+                                                    <?php
+                                                    }
+                                                    ?>
                                                 </tr>
                                             </thead>
                                             <tfoot>
                                                 <tr>
                                                     <th>Talhao</th>
-                                                        <?php
-                                                            foreach($colunaComparativo as $coluna){
-                                                        ?>
-                                                            <th><?php echo $coluna;?></th>
-                                                        <?php
-                                                             }
-                                                        ?>
-                                                    </tr>
-                                            </tfoot>
-                                            <tbody>
-                                                     <?php
-                                                            $n = 0;
-                                                            foreach($listaTalhao as $list){
-                                                                $linhaComparativo[$n]['nome'] = $list['nome'];
-                                                        ?>
-                                                <tr>
-                                                        <td><?php echo $list['nome'];?></td>
-                                                        
-                                                        <?php
-                                                            $idTalhao2 = $list['id'];
-                                                           
-                                                            foreach($listMaquinas as $listMaq){
-                                                                
-                                                                $sqlBuscaMaquina2 = $conn->query("SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM $nomeTabela WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND id_talhao = $idTalhao2 AND id_maquina = $listMaq AND perda_total > 0 GROUP BY id_maquina");
-                                                                // echo "SELECT id_maquina, AVG(perda_total) AS MediaMaquina FROM dados_milho WHERE id_propriedade = '$propriedade' AND id_safra = '$safra' AND id_talhao = $idTalhao2 AND id_maquina = $listMaq AND perda_total > 0 GROUP BY id_maquina";
-                                                                
-                                                                $maquina2 = $sqlBuscaMaquina2->fetch(PDO::FETCH_ASSOC);
-                                                               
-                                                                $valorMedia2 = $maquina2['mediamaquina'] ?? $maquina2['MediaMaquina'] ?? null;
-
-                                                                if(!empty($valorMedia2)){
-                                                                    $linhaComparativo[$n][$listMaq] = number_format((float)$valorMedia2, 2, ',', '.');
-                                                                } else {
-                                                                    $linhaComparativo[$n][$listMaq] = "Sem registro";
-                                                                }                                                                    
-                                                            ?>
-                                                                
-                                                            <td><?php 
-                                                                if(!empty($valorMedia2)){
-                                                                    echo number_format((float)$valorMedia2, 2, ',', '.');
-                                                                } else {
-                                                                    echo "Sem registro";
-                                                                }
-                                                            ?></td>
-                                                        <?php
-                                                            
-                                                        }
-                                                        ?>
-                                                </tr>
                                                     <?php
-                                                            $n +=1;
-                                                            
+                                                    // Repete o cabeçalho no rodapé
+                                                    if(!empty($colunaComparativo)){
+                                                        foreach($colunaComparativo as $coluna){
+                                                            echo "<th>$coluna</th>";
                                                         }
+                                                    }
                                                     ?>
+                                                </tr>
+                                            </tfoot>
+                                            
+                                            <?php
+                                            $sqlMatriz = $conn->query("
+                                                SELECT id_talhao, id_maquina, AVG(perda_total) as media
+                                                FROM $nomeTabela
+                                                WHERE id_propriedade = $propriedade 
+                                                AND id_safra = $safra 
+                                                AND perda_total > 0
+                                                GROUP BY id_talhao, id_maquina
+                                            ");
+
+                                            $dadosCruzados = [];
+                                            while($row = $sqlMatriz->fetch(PDO::FETCH_ASSOC)){
+                                                $dadosCruzados[$row['id_talhao']][$row['id_maquina']] = $row['media'];
+                                            }
+                                            ?>
+
+                                            <tbody>
+                                                <?php
+                                                $n = 0;
+                                                if(!empty($listaTalhao)){
+                                                    foreach($listaTalhao as $list){
+                                                        $linhaComparativo[$n]['nome'] = $list['nome'];
+                                                ?>
+                                                <tr>
+                                                    <td><?php echo $list['nome'];?></td>
+                                                    
+                                                    <?php
+                                                    $idTalhaoAtual = $list['id'];
+                                                    if(!empty($listMaquinas)){
+                                                        foreach($listMaquinas as $idMaquinaAtual){
+                                                            $valorMedia2 = isset($dadosCruzados[$idTalhaoAtual][$idMaquinaAtual]) 
+                                                                        ? $dadosCruzados[$idTalhaoAtual][$idMaquinaAtual] 
+                                                                        : null;
+
+                                                            // Prepara array para exportação CSV
+                                                            if(!empty($valorMedia2)){
+                                                                $linhaComparativo[$n][$idMaquinaAtual] = number_format((float)$valorMedia2, 2, ',', '.');
+                                                            } else {
+                                                                $linhaComparativo[$n][$idMaquinaAtual] = "Sem registro";
+                                                            }                                               
+                                                    ?>
+                                                        
+                                                        <td>
+                                                            <?php 
+                                                            if(!empty($valorMedia2)){
+                                                                echo number_format((float)$valorMedia2, 2, ',', '.');
+                                                            } else {
+                                                                echo "Sem registro";
+                                                            }
+                                                            ?>
+                                                        </td>
+                                                    <?php
+                                                        } 
+                                                    }
+                                                    ?>
+                                                </tr>
+                                                <?php
+                                                        $n +=1;
+                                                    } 
+                                                }
+                                                ?>
                                             </tbody>
                                         </table>
                                     </div>
