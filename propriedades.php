@@ -2,18 +2,36 @@
     include __DIR__ . '/backend/conexao.php';
     include __DIR__ . '/backend/verificaLog.php';
 
-    if(empty($_GET['status'])){
-        $status = "";
-    }else{
-        $status = $_GET['status'];
-    }
+    $status = $_GET['status'] ?? "";
 
-    $sqlBusca = $conn->query('SELECT * FROM propriedades WHERE status = 1');
+    $sql = "
+            SELECT 
+                p.id, 
+                p.nome, 
+                p.cidade, 
+                p.estado,
+                
+                -- Subconsulta para somar a área (evita erros de agrupamento)
+                (SELECT COALESCE(SUM(t.area), 0) 
+                FROM talhao t 
+                WHERE t.id_propriedade = p.id
+                ) as area_total,
 
-    
+                -- Subconsulta para listar os nomes dos donos em uma única linha
+                (SELECT STRING_AGG(u.nome, ', ') 
+                FROM relacao_usuario_propriedade r
+                INNER JOIN usuarios u ON r.id_usuario = u.id
+                WHERE r.id_propriedade = p.id 
+                AND r.id_tipo = 3 
+                AND r.status = 1
+                ) as nomes_proprietarios
 
+            FROM propriedades p
+            WHERE p.status = 1
+    ";
+
+    $sqlBusca = $conn->query($sql);
 ?>
-
 
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -79,32 +97,27 @@
                                     </tfoot>
                                     <tbody>
                                         <?php
-                                            while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
-                                                $idPropriedade = $dados['id'];
-                                                
-                                                $sqlsomatalhao = $conn->query("SELECT SUM(area) AS soma FROM talhao WHERE id_propriedade = '$idPropriedade'");
-                                                $somaTalhao = $sqlsomatalhao->fetch(PDO::FETCH_ASSOC);
-
-                                                $sqlBuscaProprietario = $conn->query("SELECT relacao_usuario_propriedade.id_usuario, relacao_usuario_propriedade.id_propriedade, relacao_usuario_propriedade.id_tipo, Usuarios.nome FROM relacao_usuario_propriedade INNER JOIN Usuarios ON relacao_usuario_propriedade.id_usuario = Usuarios.id WHERE relacao_usuario_propriedade.id_propriedade = '$idPropriedade' AND relacao_usuario_propriedade.id_tipo = 3 AND relacao_usuario_propriedade.status = 1;");
-                                                
-                                                
+                                        while($dados = $sqlBusca->fetch(PDO::FETCH_ASSOC)){
+                                            $idPropriedade = $dados['id'];
+                                            
+                                            // Convertemos os nomes em array caso precise tratar, ou só exibimos
+                                            // Se vier vazio, colocamos um traço
+                                            $nomesDonos = $dados['nomes_proprietarios'] ?? '-';
                                         ?>  
                                         <tr>
-                                            <td onclick="location.href='detalhes-propriedade.php?id=<?php echo base64_encode($idPropriedade);?>'"><?php echo $dados['nome'];?></td>
-                                            <td>
-                                                <?php 
-                                                    while($proprietarios = $sqlBuscaProprietario->fetch(PDO::FETCH_ASSOC)){
-                                                       
-                                                        echo $proprietarios['nome'];
-                                                    }
-                                                ?>
-                                                </td>
-                                            <td><?php echo number_format($somaTalhao['soma'],2, ',','.');?> ha</td>
+                                            <td style="cursor: pointer;" onclick="location.href='detalhes-propriedade.php?id=<?php echo base64_encode($idPropriedade);?>'">
+                                                <?php echo $dados['nome'];?>
+                                            </td>
+                                            
+                                            <td><?php echo $nomesDonos; ?></td>
+                                            
+                                            <td><?php echo number_format($dados['area_total'], 2, ',','.');?> ha</td>
+                                            
                                             <td><?php echo $dados['cidade'];?></td>
                                             <td><?php echo $dados['estado'];?></td>
                                         </tr>
                                         <?php
-                                            }
+                                        }
                                         ?>
                                     </tbody>
                                 </table>
