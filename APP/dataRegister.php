@@ -17,8 +17,8 @@
     $rotulo = filter_input(INPUT_POST, 'rotulo', FILTER_SANITIZE_SPECIAL_CHARS);
 
     // ---------------------------//
-    echo "DEBUG: Talhao=" . $talhao . " | Maquina=" . $machine . " | Prop=" . $property . " | PerdaKey=" . $perda2m;
-    exit;
+    //echo "DEBUG: Talhao=" . $talhao . " | Maquina=" . $machine . " | Prop=" . $property . " | PerdaKey=" . $perda2m;
+    //exit;
     // ---------------------------//
 
     // CORREÇÃO 1: Prepared Statement para buscar o token (Segurança)
