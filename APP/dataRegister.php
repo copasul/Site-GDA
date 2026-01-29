@@ -11,7 +11,7 @@
     $talhao = filter_input(INPUT_POST, 'talhao', FILTER_SANITIZE_SPECIAL_CHARS);
     $machine = filter_input(INPUT_POST, 'maquina', FILTER_SANITIZE_SPECIAL_CHARS);
     $perda2m = filter_input(INPUT_POST, 'perda2m', FILTER_SANITIZE_SPECIAL_CHARS);
-    $perdaNatural2m = 0;
+    $perdaNatural2m = 0.0;
     $obs = filter_input(INPUT_POST, 'obs', FILTER_SANITIZE_SPECIAL_CHARS);
     $data = filter_input(INPUT_POST, 'data', FILTER_SANITIZE_SPECIAL_CHARS);
     $rotulo = filter_input(INPUT_POST, 'rotulo', FILTER_SANITIZE_SPECIAL_CHARS);
@@ -72,7 +72,7 @@
                 $perda30m = filter_input(INPUT_POST, 'perda30m', FILTER_SANITIZE_SPECIAL_CHARS);
                 $perdaTotal = $perda2m + $perdaNatural2m + $perda30m;
             
-                $sqlInsert = $conn->prepare("INSERT INTO dados_milho(id_usuario, data_hora, id_safra, id_propriedade, id_talhao, id_maquina, perda_2m, perda_30m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, :perda30m, 0, :perdaTotal, :obs)");
+                $sqlInsert = $conn->prepare("INSERT INTO dados_milho(id_usuario, data_hora, id_safra, id_propriedade, id_talhao, id_maquina, perda_2m, perda_30m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, :perda30m, :perdaNatural2m, :perdaTotal, :obs)");
                 $sqlInsert->bindParam(':UserId', $UserId);
                 $sqlInsert->bindParam(':id_safra', $safra);
                 $sqlInsert->bindParam(':property', $property);
@@ -94,7 +94,7 @@
             } elseif($cultura == "Soja"){  #Soja
                 $perdaTotal = $perda2m + $perdaNatural2m;
             
-                $sqlInsert = $conn->prepare("INSERT INTO dados_soja(id_usuario, data_hora, id_safra, id_propriedade, id_talhao, id_maquina, perda_2m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, 0, :perdaTotal, :obs)");
+                $sqlInsert = $conn->prepare("INSERT INTO dados_soja(id_usuario, data_hora, id_safra, id_propriedade, id_talhao, id_maquina, perda_2m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, :perdaNatural2m, :perdaTotal, :obs)");
                 $sqlInsert->bindParam(':UserId', $UserId);
                 $sqlInsert->bindParam(':property', $property);
                 $sqlInsert->bindParam(':id_safra', $safra);
