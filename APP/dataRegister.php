@@ -20,7 +20,7 @@
     $dataSegura = date("Y-m-d H:i:s", strtotime($dataBruta));
 
     // ---------------------------//
-    echo "T=" . $talhao . 
+    /*echo "T=" . $talhao . 
          " | M=" . $machine . 
          " | P=" . $property . 
          " | P2=" . $perda2m .
@@ -29,7 +29,7 @@
          " | DS=". $dataSegura .
          " | R=" . $rotulo .
          " | C=" . $cultura;
-    exit;
+    exit;*/
     // ---------------------------//
 
     // CORREÇÃO 1: Prepared Statement para buscar o token (Segurança)
@@ -60,7 +60,7 @@
         $sqlBusca = $conn->prepare("SELECT * FROM safra WHERE id_cultura = :idCultura AND :data BETWEEN data_inicio AND data_fim");
         $sqlBusca->execute([
             ':idCultura' => $idCultura,
-            ':data' => $data
+            ':data' => $dataSegura
         ]);
         $dados = $sqlBusca->fetch(PDO::FETCH_ASSOC);
         
@@ -83,7 +83,7 @@
                 $sqlInsert->bindParam(':perdaNatural2m', $perdaNatural2m);
                 $sqlInsert->bindParam(':perdaTotal', $perdaTotal);
                 $sqlInsert->bindParam(':obs', $obs);
-                $sqlInsert->bindParam(':data', $data);
+                $sqlInsert->bindParam(':data', $dataSegura);
                 
                 if($sqlInsert->execute()){
                     echo json_encode(array('status' => 'ok', 'rotulo'=>$rotulo));
@@ -104,7 +104,7 @@
                 $sqlInsert->bindParam(':perdaNatural2m', $perdaNatural2m);
                 $sqlInsert->bindParam(':perdaTotal', $perdaTotal);
                 $sqlInsert->bindParam(':obs', $obs);
-                $sqlInsert->bindParam(':data', $data);
+                $sqlInsert->bindParam(':data', $dataSegura);
                 
                 if($sqlInsert->execute()){
                     echo json_encode(array('status' => 'ok', 'rotulo'=>$rotulo));
