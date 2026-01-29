@@ -17,7 +17,14 @@
     $rotulo = filter_input(INPUT_POST, 'rotulo', FILTER_SANITIZE_SPECIAL_CHARS);
 
     // ---------------------------//
-    echo "T=" . $talhao . " | M=" . $machine . " | P=" . $property . " | P2=" . $perda2m;
+    echo "T=" . $talhao . 
+         " | M=" . $machine . 
+         " | P=" . $property . 
+         " | P2=" . $perda2m .
+         " | O=" . $obs .
+         " | D=" . $data .
+         " | R=" . $rotulo .
+         " | C=" . $cultura;
     exit;
     // ---------------------------//
 
