@@ -16,6 +16,9 @@
     $data = filter_input(INPUT_POST, 'data', FILTER_SANITIZE_SPECIAL_CHARS);
     $rotulo = filter_input(INPUT_POST, 'rotulo', FILTER_SANITIZE_SPECIAL_CHARS);
 
+    $dataBruta = $data;
+    $dataSegura = date("Y-m-d H:i:s", strtotime($dataBruta));
+
     // ---------------------------//
     echo "T=" . $talhao . 
          " | M=" . $machine . 
