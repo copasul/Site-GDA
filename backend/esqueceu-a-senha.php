@@ -77,24 +77,38 @@ function email($email, $template) {
     require ("phpmailer/src/PHPMailer.php");
     require ("phpmailer/src/SMTP.php");    
     
-    $mail = new PHPMailer();
+    $mail = new PHPMailer(true); // "true" ativa as exceções
     
-    $mail->isSMTP();
-    // $mail->SMTPDebug = 1;
-    $mail->Host = 'smtp.gmail.com';
-    $mail->SMTPAuth = true;
-    $mail->SMTPSecure = 'ssl';
-    $mail->Username = 'informa@copasul.coop.br';
-    $mail->Password = '5fB0qwb0BLtv';
-    $mail->Port = 465;
+    try {
+        $mail->isSMTP();
+        $mail->SMTPDebug = 2; // <--- ISSO MOSTRA O ERRO NA TELA (0 desliga, 2 mostra conversa)
+        $mail->Debugoutput = 'html'; // Formata bonitinho na tela
+        
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->SMTPSecure = 'ssl'; // Use 'tls' se ssl falhar
+        $mail->Port = 465; // Use 587 se usar tls
+        
+        $mail->Username = 'informa@copasul.coop.br';
+        $mail->Password = '5fB0qwb0BLtv'; // VERIFIQUE ISSO (Leia o Passo 2)
 
-    $mail->setFrom('informa@copasul.coop.br', 'Copasul');
-    $mail->addAddress($email);
-    
-    $mail->isHTML(true);
-    $mail->CharSet = 'UTF-8';
-    $mail->Subject = "Alterar senha | COPASUL";
-    $mail->Body = $template;
-    $mail->Send();
+        $mail->setFrom('informa@copasul.coop.br', 'Copasul');
+        $mail->addAddress($email);
+        
+        $mail->isHTML(true);
+        $mail->CharSet = 'UTF-8';
+        $mail->Subject = "Alterar senha | COPASUL";
+        $mail->Body = $template;
+        
+        $mail->send();
+        echo "<h1>SUCESSO! O e-mail foi aceito pelo servidor.</h1>";
+        exit; // Para aqui para você ver a mensagem de sucesso
+        
+    } catch (Exception $e) {
+        // Se der erro, mostra na cara!
+        echo "<h1>ERRO FATAL AO ENVIAR:</h1>";
+        echo "Erro do Mailer: {$mail->ErrorInfo}";
+        exit; // Para o código aqui para não redirecionar
+    }
 }
 ?>
