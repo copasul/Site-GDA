@@ -16,6 +16,11 @@
     $data = filter_input(INPUT_POST, 'data', FILTER_SANITIZE_SPECIAL_CHARS);
     $rotulo = filter_input(INPUT_POST, 'rotulo', FILTER_SANITIZE_SPECIAL_CHARS);
 
+    // ---------------------------//
+    echo "DEBUG: Talhao=" . $talhao . " | Maquina=" . $machine . " | Prop=" . $property . " | PerdaKey=" . $perda2m;
+    exit;
+    // ---------------------------//
+
     // CORREÇÃO 1: Prepared Statement para buscar o token (Segurança)
     $sqlToken = $conn->prepare("SELECT * FROM login_registro WHERE token = :token AND validade > :dataAtual");
     $sqlToken->execute([
@@ -56,7 +61,7 @@
                 $perda30m = filter_input(INPUT_POST, 'perda30m', FILTER_SANITIZE_SPECIAL_CHARS);
                 $perdaTotal = $perda2m + $perdaNatural2m + $perda30m;
             
-                $sqlInsert = $conn->prepare("INSERT INTO dados_milho(id_usuario, data_hora, id_safra,id_propriedade, id_talhao, id_maquina, perda_2m, perda_30m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, :perda30m, 0, :perdaTotal, :obs)");
+                $sqlInsert = $conn->prepare("INSERT INTO dados_milho(id_usuario, data_hora, id_safra, id_propriedade, id_talhao, id_maquina, perda_2m, perda_30m, perda_natural_2m, perda_total, obs) VALUES (:UserId, :data, :id_safra, :property, :talhao, :machine, :perda2m, :perda30m, 0, :perdaTotal, :obs)");
                 $sqlInsert->bindParam(':UserId', $UserId);
                 $sqlInsert->bindParam(':id_safra', $safra);
                 $sqlInsert->bindParam(':property', $property);
