@@ -26,6 +26,7 @@
          " | P2=" . $perda2m .
          " | O=" . $obs .
          " | D=" . $data .
+         " | DS=". $dataSegura .
          " | R=" . $rotulo .
          " | C=" . $cultura;
     exit;
