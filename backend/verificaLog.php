@@ -16,7 +16,7 @@ $urlBase =  '/';
 $titulo  = $params['titulo'] ?? '';
 
 // ✅ 3) Pegue o token com segurança (sem warning)
-$tokenAcess = $_COOKIE['token_acesso'] ?? '';
+$tokenAcess = $_SESSION['token'] ?? '';
 $ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
 if (empty($tokenAcess)) {
