@@ -32,7 +32,8 @@ try{
                     $sqlAcesso->bindParam(':id_usuario', $id_usuario);
                     $sqlAcesso->bindParam(':token', $token_acesso);
                     $sqlAcesso->bindParam(':tipo_acesso', $tipo_acesso);
-                    $sqlAcesso->bindParam(':status', 1);
+                    $status = 1;
+                    $sqlAcesso->bindParam(':status', $status);
                     $sqlAcesso->bindParam(':ip', $ip);
                     $sqlAcesso->execute();
 
