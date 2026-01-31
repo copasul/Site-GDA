@@ -1,9 +1,11 @@
 <?php
+ini_set('session.gc_maxlifetime', 14400);
+session_set_cookie_params(14400);
 session_start();
 date_default_timezone_set('America/Sao_Paulo');
 
 $dataAtual = date("Y-m-d H:i:s");
-$validade  = date("Y-m-d H:i:s", strtotime('+1 hour'));
+$validade  = date("Y-m-d H:i:s", strtotime('+4 hour'));
 
 $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
 $senhaInput = trim((string)($_POST['senha'] ?? '')); // substitui FILTER_SANITIZE_STRING
