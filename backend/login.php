@@ -1,6 +1,7 @@
 <?php
 ini_set('session.gc_maxlifetime', 14400);
 session_set_cookie_params(14400);
+
 session_start();
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -57,7 +58,7 @@ try {
 
     $_SESSION['token'] = $token;
 
-    header("Location: ../index.php");
+    setcookie("token_acesso", $token, time() + 14400, "/");
     exit;
 
 } catch (Throwable $e) {
